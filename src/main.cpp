@@ -577,7 +577,7 @@ int main(int argc, char **argv)
                "  -bank   Path to custom OP2 bank file.\n"
                "  -loop   Enable looping of the opened music file.\n"
 #ifdef HW_DOS_BUILD
-               "  -addr   [DOS ONLY] Enable looping of the opened music file. Default is 0x388.\n"
+               "  -addr   [DOS ONLY] Set the hardware OPL2/OPL3 address. Default is 0x388.\n"
 #endif
                "  -setup  Set a quoted setup string for synth that contains options:\n"
                "      \"-opl3\"  - enable OPL3 mode (by default the OPL2 mode).\n"
