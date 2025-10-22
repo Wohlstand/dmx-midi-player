@@ -110,8 +110,8 @@ static struct TimeCounter
 #endif
 
 #ifdef HW_DOS_BUILD
-    volatile unsigned newTimerFreq;
-    unsigned timerPeriod;
+    volatile unsigned long newTimerFreq;
+    volatile unsigned long timerPeriod;
     int haveYield;
     int haveDosIdle;
     volatile unsigned int ring;
@@ -263,6 +263,7 @@ static struct TimeCounter
                 while(BIOStimer < timerNext)
                     delay(1);
             }
+
             timerNext = BIOStimer + 1;
             break;
 
