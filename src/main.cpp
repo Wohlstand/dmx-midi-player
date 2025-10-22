@@ -226,7 +226,7 @@ static struct TimeCounter
 
         BIOStimer_begin = BIOStimer;
 
-        std::fprintf(stdout, " - [DOS] Running clock with %d hz\n", newTimerFreq);
+        std::fprintf(stdout, " - [DOS] Running clock with %ld hz\n", newTimerFreq);
     }
 
     void restoreDosTimer()
@@ -422,6 +422,7 @@ struct Args
     const char *bank = "genmidi.op2";
 #ifndef HW_DOS_BUILD
     int emu_type = EMU_NUKED_OPL3;
+    float gain = 2.0f;
 #endif
 
     bool loop = false;
@@ -434,6 +435,12 @@ struct Args
     {
         printf("ERROR: Argument %s requires an option!", arg);
         fflush(stdout);
+        return false;
+    }
+
+    bool printArgNoSup(const char *arg)
+    {
+        printf("ERROR: Argument %s is not supported on this platform\n", arg);
         return false;
     }
 
@@ -498,15 +505,20 @@ struct Args
 
             }
             else if(!std::strcmp(cur, "-emu"))
-            {
-                printf("ERROR: Argument -emu is not supported on this platform\n");
-                return false;
-            }
+                return printArgNoSup("-emu");
+            else if(!std::strcmp(cur, "-gain"))
+                return printArgNoSup("-gain");
 #else
             else if(!std::strcmp(cur, "-freq"))
+                return printArgNoSup("-freq");
+            else if(!std::strcmp(cur, "-gain"))
             {
-                printf("ERROR: Argument -freq is not supported on this platform\n");
-                return false;
+                --argc;
+                ++argv;
+                if(argc == 0)
+                    return printArgFail("-gain");
+
+                gain = std::atof(*argv);
             }
             else if(!std::strcmp(cur, "-emu"))
             {
@@ -585,6 +597,7 @@ int main(int argc, char **argv)
                "      \"-doom1\" - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
                "      \"-doom2\" - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
 #ifndef HW_DOS_BUILD
+               "  -gain   [Non-DOS ONLY] Set the gaining factor (default 2.0).\n"
                "  -emu    [Non-DOS ONLY] Select playback chip emulator:\n"
                "       nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
                "       mame-opl2, lle-opl2, lle-opl3\n"
@@ -645,6 +658,11 @@ int main(int argc, char **argv)
         fflush(stdout);
         return 1;
     }
+
+    printf(" - Gain factor: %g\n", args.gain);
+    fflush(stdout);
+
+    player.setGain(args.gain);
 #else
     player.set_hw_addr(args.hw_addr);
 #endif

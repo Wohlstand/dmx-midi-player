@@ -36,5 +36,7 @@ public:
 
     int fm_init(int chip_emu, unsigned int rate);
     void fm_writereg(unsigned short reg, unsigned char data);
+#ifndef HW_DOS_BUILD
     void fm_generate(int *buffer, unsigned int length);
+#endif
 };

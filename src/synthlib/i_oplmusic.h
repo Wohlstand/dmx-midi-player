@@ -338,7 +338,6 @@ private:
     fm_chip *opl = nullptr;
     opl_channel_data_t channels[MIDI_CHANNELS_PER_TRACK];
     opl_driver_ver_t opl_drv_ver = opl_doom_1_9;
-    int m_mode_set = -1;
     const char *m_setup_string = nullptr;
 
     // GENMIDI lump instrument data:
@@ -394,7 +393,6 @@ public:
 
     const char *getEmuName();
 
-    void set_mode(int mode);
     void setup_string(const char *setup);
     bool load_bank_file(const char *bank_path);
 
@@ -408,5 +406,8 @@ public:
 
     void midi_panic();
     void midi_reset();
+
+#ifndef HW_DOS_BUILD
     void midi_generate(int *buffer, unsigned int length);
+#endif
 };

@@ -450,7 +450,7 @@ void DoomOPL::ReplaceExistingVoice()
 
 void DoomOPL::ReplaceExistingVoiceDoom1(void)
 {
-    int i;
+    unsigned int i;
     int result;
 
     result = 0;
@@ -813,7 +813,7 @@ void DoomOPL::SetChannelPan(opl_channel_data_t *channel, unsigned int pan)
         {
             reg_pan = 0x30;
         }
-        if (channel->pan != reg_pan)
+        if (channel->pan != (int)reg_pan)
         {
             channel->pan = reg_pan;
             for (i = 0; i < voice_alloced_num; i++)
@@ -828,7 +828,7 @@ void DoomOPL::SetChannelPan(opl_channel_data_t *channel, unsigned int pan)
 }
 
 // Handler for the MIDI_CONTROLLER_ALL_NOTES_OFF channel event.
-void DoomOPL::AllNotesOff(opl_channel_data_t *channel, unsigned int param)
+void DoomOPL::AllNotesOff(opl_channel_data_t *channel, unsigned int /*param*/)
 {
     unsigned int i;
 
@@ -1044,28 +1044,6 @@ const char *DoomOPL::getEmuName()
     return opl->getEmuName();
 }
 
-void DoomOPL::set_mode(int mode)
-{
-    opl_new = 0;
-    opl_voices = OPL_NUM_VOICES;
-    opl_drv_ver = opl_doom_1_9;
-
-    switch(m_mode_set)
-    {
-    default:
-    case 0:
-        opl_new = 1;
-        opl_voices = OPL_NUM_VOICES * 2;
-        break;
-    case 1:
-        opl_drv_ver = opl_doom1_1_666;
-        break;
-    case 2:
-        opl_drv_ver = opl_doom1_1_666;
-        break;
-    }
-}
-
 void DoomOPL::setup_string(const char *setup)
 {
     m_setup_string = setup;
@@ -1089,38 +1067,35 @@ int DoomOPL::InitSynth()
     voice_alloced_num = 0;
     voice_free_num = 0;
 
-    if(m_mode_set < 0)
+    opl_new = 0;
+    opl_voices = OPL_NUM_VOICES;
+    opl_drv_ver = opl_doom_1_9;
+    printf(" - DEBUG: DOOM1 1.9 mode is default\n");
+
+    env = m_setup_string ? m_setup_string : getenv("DMXOPTION");
+    if (env)
     {
-        opl_new = 0;
-        opl_voices = OPL_NUM_VOICES;
-        opl_drv_ver = opl_doom_1_9;
-        printf(" - DEBUG: DOOM1 1.9 mode is default\n");
-
-        env = m_setup_string ? m_setup_string : getenv("DMXOPTION");
-        if (env)
+        if (strstr(env, "-opl3"))
         {
-            if (strstr(env, "-opl3"))
-            {
-                opl_new = 1;
-                opl_voices = OPL_NUM_VOICES * 2;
-                printf(" - DEBUG: Enabling OPL3 mode\n");
-            }
-
-            if (strstr(env, "-doom1"))
-            {
-                opl_drv_ver = opl_doom1_1_666;
-                printf(" - DEBUG: Setting DOOM1 1.666 mode (previous overriden)\n");
-            }
-
-            if (strstr(env, "-doom2"))
-            {
-                opl_drv_ver = opl_doom2_1_666;
-                printf(" - DEBUG: Setting DOOM2 1.666 mode (previous overriden)\n");
-            }
+            opl_new = 1;
+            opl_voices = OPL_NUM_VOICES * 2;
+            printf(" - DEBUG: Enabling OPL3 mode\n");
         }
 
-        fflush(stdout);
+        if (strstr(env, "-doom1"))
+        {
+            opl_drv_ver = opl_doom1_1_666;
+            printf(" - DEBUG: Setting DOOM1 1.666 mode (previous overriden)\n");
+        }
+
+        if (strstr(env, "-doom2"))
+        {
+            opl_drv_ver = opl_doom2_1_666;
+            printf(" - DEBUG: Setting DOOM2 1.666 mode (previous overriden)\n");
+        }
     }
+
+    fflush(stdout);
 
     OPL_InitRegisters(opl_new);
 
@@ -1149,9 +1124,11 @@ DoomOPL::~DoomOPL()
         delete opl;
 }
 
+#ifndef HW_DOS_BUILD
 void DoomOPL::midi_generate(int *buffer, unsigned int length) {
     opl->fm_generate(buffer, length);
 }
+#endif
 
 midisynth *getsynth() {
     DoomOPL *synth = new DoomOPL();

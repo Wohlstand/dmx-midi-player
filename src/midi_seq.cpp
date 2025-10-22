@@ -102,42 +102,19 @@ static void rtSysEx(void *userdata, const uint8_t *msg, size_t size)
 
 
 /* NonStandard calls */
-static void rtRawOPL(void *userdata, uint8_t reg, uint8_t value)
-{
-    // midisynth *context = reinterpret_cast<midisynth *>(userdata);
-    // context->realTime_rawOPL(reg, value);
-}
-
-static void rtDeviceSwitch(void *userdata, size_t track, const char *data, size_t length)
-{
-    (void)userdata;
-    (void)track;
-    (void)data;
-    (void)length;
-    // midisynth *context = reinterpret_cast<midisynth *>(userdata);
-    // context->realTime_deviceSwitch(track, data, length);
-}
-
-static size_t rtCurrentDevice(void *userdata, size_t track)
-{
-    (void)userdata;
-    (void)track;
-    // midisynth *context = reinterpret_cast<midisynth *>(userdata);
-    // return context->realTime_currentDevice(track);
-    return 0;
-}
-
 static void rtSongBegin(void *userdata)
 {
     midisynth *context = reinterpret_cast<midisynth *>(userdata);
     context->midi_reset();
 }
 
+#ifndef HW_DOS_BUILD
 static void playSynth(void *userdata, uint8_t *stream, size_t length)
 {
     midisynth *context = reinterpret_cast<midisynth *>(userdata);
     context->midi_generate(reinterpret_cast<int*>(stream), length / (2 * sizeof(int)));
 }
+#endif
 
 void MIDI_Seq::initSeq()
 {
@@ -156,11 +133,6 @@ void MIDI_Seq::initSeq()
     m_interface->rt_pitchBend = rtPitchBend;
     m_interface->rt_systemExclusive = rtSysEx;
 
-    /* NonStandard calls */
-    m_interface->rt_rawOPL = rtRawOPL;
-    m_interface->rt_deviceSwitch = rtDeviceSwitch;
-    m_interface->rt_currentDevice = rtCurrentDevice;
-
     m_interface->onSongStart = rtSongBegin;
     m_interface->onSongStart_userData = m_synth;
     // m_interface->onloopStart = hooks.onLoopStart;
@@ -169,8 +141,10 @@ void MIDI_Seq::initSeq()
     // m_interface->onloopEnd_userData = hooks.onLoopEnd_userData;
     /* NonStandard calls End */
 
+#ifndef HW_DOS_BUILD
     m_interface->onPcmRender = playSynth;
     m_interface->onPcmRender_userData = m_synth;
+#endif
 
 #ifndef HW_DOS_BUILD
     m_interface->pcmSampleRate = m_rate;
@@ -180,9 +154,9 @@ void MIDI_Seq::initSeq()
     m_sequencer->setInterface(m_interface);
 }
 
-void MIDI_Seq::debugMessageHook(void *userdata, const char *fmt, ...)
+void MIDI_Seq::debugMessageHook(void */*userdata*/, const char *fmt, ...)
 {
-    MIDI_Seq *self = reinterpret_cast<MIDI_Seq*>(userdata);
+    // MIDI_Seq *self = reinterpret_cast<MIDI_Seq*>(userdata);
     char buffer[4096];
     std::va_list args;
     va_start(args, fmt);
@@ -227,15 +201,11 @@ bool MIDI_Seq::initStream(int out_fmt, int out_rate, int out_channels)
     if(m_stream)
         SDL_FreeAudioStream(m_stream);
 
+    m_output_format = out_fmt;
     m_stream = SDL_NewAudioStream(AUDIO_S32SYS, 2, m_rate, out_fmt, out_channels, out_rate);
     return m_stream != nullptr;
 }
 #endif
-
-void MIDI_Seq::setMode(int mode)
-{
-    m_synth->set_mode(mode);
-}
 
 void MIDI_Seq::setSetupString(const char *setup)
 {
@@ -251,6 +221,13 @@ bool MIDI_Seq::openMusic(const char *music)
 {
     return m_sequencer->loadMIDI(music);
 }
+
+#ifndef HW_DOS_BUILD
+void MIDI_Seq::setGain(float gain)
+{
+    m_gain = gain;
+}
+#endif
 
 int MIDI_Seq::initSynth(int emu_type, unsigned int rate)
 {
@@ -309,19 +286,25 @@ void MIDI_Seq::panic()
 #ifndef HW_DOS_BUILD
 int MIDI_Seq::playBuffer(unsigned char *out, size_t len)
 {
-    int ret, filled, out_written = 0, init_len = len;
+    const size_t init_len = len;
+    size_t out_written = 0;
+    int ret, filled;
     int attempts = 0;
+
+    SDL_memset(out, 0, len);
 
 retry:
     if(len == 0 || len > init_len || attempts > 10)
         return out_written;
 
-    filled = SDL_AudioStreamGet(m_stream, out, len);
+    filled = SDL_AudioStreamGet(m_stream, m_gainBuffer, len);
 
     if(filled != 0)
     {
         if(filled < 0)
             return 0; // FAIL!
+
+        SDL_MixAudioFormat(out, m_gainBuffer, m_output_format, filled, static_cast<int>(SDL_MIX_MAXVOLUME * m_gain));
 
         out_written += filled;
 
@@ -341,4 +324,5 @@ retry:
 
     goto retry;
 }
+
 #endif

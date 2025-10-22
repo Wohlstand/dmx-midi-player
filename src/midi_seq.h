@@ -39,7 +39,12 @@ class MIDI_Seq
     unsigned char m_buffer[4096];
     const size_t m_buffer_max_size = 4096;
 
+    unsigned char m_gainBuffer[4096];
+    const size_t m_gainBuffer_max_size = 4096;
+
     unsigned int m_rate = 0;
+    int m_output_format = 0;
+    float m_gain = 2.0f;
 #endif
 
     void initSeq();
@@ -56,10 +61,13 @@ public:
     void set_hw_addr(unsigned short addr);
 #endif
 
-    void setMode(int mode);
     void setSetupString(const char *setup);
     bool openBank(const char *bank);
     bool openMusic(const char *music);
+
+#ifndef HW_DOS_BUILD
+    void setGain(float gain);
+#endif
 
     int initSynth(int emu_type, unsigned int rate);
 

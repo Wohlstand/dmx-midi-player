@@ -21,7 +21,9 @@ public:
 
     virtual int fm_init(int chip_emu, unsigned int rate) = 0;
     virtual void fm_writereg(unsigned short reg, unsigned char data) = 0;
+#ifndef HW_DOS_BUILD
     virtual void fm_generate(int *buffer, unsigned int length) = 0;
+#endif
 };
 
 class midisynth {
@@ -33,7 +35,6 @@ public:
 
     virtual const char *getEmuName() = 0;
 
-    virtual void set_mode(int mode) = 0;
     virtual void setup_string(const char *setup) = 0;
     virtual bool load_bank_file(const char *bank_path) = 0;
 
@@ -49,7 +50,9 @@ public:
     virtual void midi_pitch_bend(unsigned char chan, unsigned char msb, unsigned char lsb) = 0;
     virtual void midi_program_change(unsigned char chan, unsigned char value) = 0;
 
+#ifndef HW_DOS_BUILD
     virtual void midi_generate(int *buffer, unsigned int length) = 0;
+#endif
 };
 
 midisynth* getsynth();

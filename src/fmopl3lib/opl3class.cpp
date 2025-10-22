@@ -99,6 +99,7 @@ int opl3class::fm_init(int chip_emu, unsigned int rate) {
     chip->setChipId(0);
     chip->setRate(rate);
 #else
+    (void)chip_emu;
     (void)rate;
 #endif
 
@@ -132,18 +133,19 @@ inline int32_t adl_cvtS16(int32_t x)
 }
 #endif
 
-void opl3class::fm_generate(int *buffer, unsigned int len) {
 #ifndef HW_DOS_BUILD
+void opl3class::fm_generate(int *buffer, unsigned int len) {
     chip->generate32(buffer, len);
     for(unsigned int i = 0; i < len; ++i)
     {
-        *buffer = adl_cvtS16(*buffer) * 98304; //65536;
+        // Convert to int32_t
+        *buffer = *buffer * 65536;
         ++buffer;
-        *buffer = adl_cvtS16(*buffer) * 98304; //65536;
+        *buffer = *buffer * 65536;
         ++buffer;
     }
-#endif
 }
+#endif
 
 fm_chip *getchip() {
     opl3class *chip = new opl3class;
