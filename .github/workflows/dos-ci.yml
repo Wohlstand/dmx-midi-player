@@ -68,8 +68,8 @@ jobs:
       if: matrix.config.djgpp_download
       shell: bash
       run: |
-        mkdir -p /usr/local/djgpp
-        tar -xvf djgpp.tar.gz -C /usr/local/
+        sudo mkdir -p /usr/local
+        sudo tar -xvf djgpp.tar.gz -C /usr/local/
 
     - name: Download CSDPMI7B
       if: matrix.config.csdpmi7b_download
