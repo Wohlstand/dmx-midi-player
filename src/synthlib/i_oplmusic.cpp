@@ -1092,7 +1092,7 @@ void DoomOPL::setup_string(const char *setup)
 
 bool DoomOPL::load_bank_file(const char *bank_path)
 {
-    strncpy(m_bankPath, bank_path, 1024);
+    strncpy(m_bankPath, bank_path, sizeof(m_bankPath));
     return true;
 }
 

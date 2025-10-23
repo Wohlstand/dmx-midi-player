@@ -341,7 +341,7 @@ private:
     const char *m_setup_string = nullptr;
 
     // GENMIDI lump instrument data:
-    char m_bankPath[1024] = "";
+    char m_bankPath[2048] = "";
     byte *m_lump = nullptr;
 
     genmidi_instr_t *main_instrs;
