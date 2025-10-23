@@ -781,7 +781,7 @@ int main(int argc, char **argv)
                "  -doom1           - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
                "  -doom2           - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
                "  -setup \"string\"  - Set a quoted space-separated setup string for synth\n"
-               "                     same as DMXOPTION environment variable.\n"
+               "                     in same as DMXOPTION environment variable.\n"
                "\n");
         fflush(stdout);
         return 1;
