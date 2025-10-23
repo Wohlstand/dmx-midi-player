@@ -62,15 +62,25 @@ if(NOT MSDOS_BUILD)
     set(COMPILER_SUPPORTS_CXX14 ON)
     include(src/fmopl3lib/chips/chipset.cmake)
 
+    set(AUDIO_OUT_SRC
+        src/wav/wave_writer.h
+        src/wav/wave_writer.c
+    )
+
     find_package(SDL2 REQUIRED)
 endif()
+
+include(src/utf8main/utf8main.cmake)
 
 add_executable(dmxplay
     src/main.cpp
 
     src/interface.h
 
+    ${AUDIO_OUT_SRC}
     ${CHIPS_SOURCES}
+    ${UTF8MAIN_SRCS}
+
     src/fmopl3lib/opl3class.h src/fmopl3lib/opl3class.cpp
 
     src/synthlib/i_oplmusic.h src/synthlib/i_oplmusic.cpp

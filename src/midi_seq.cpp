@@ -284,7 +284,7 @@ void MIDI_Seq::panic()
 }
 
 #ifndef HW_DOS_BUILD
-int MIDI_Seq::playBuffer(unsigned char *out, size_t len)
+size_t MIDI_Seq::playBuffer(unsigned char *out, size_t len)
 {
     const size_t init_len = len;
     size_t out_written = 0;

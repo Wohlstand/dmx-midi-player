@@ -19,6 +19,44 @@
 
 #include <string.h>
 #include "i_oplmusic.h"
+#ifdef _WIN32
+#   include <windows.h>
+#endif
+
+static FILE* i_fopen(const char*filename, const char*mode) {
+#ifdef _WIN32
+    int new_Len1 = 0;
+    int new_Len2 = 0;
+    int fn_len_s = strlen(filename);
+    int m_len_s  = strlen(mode);
+    if (fn_len_s == 0)
+    {
+        return NULL;
+    }
+    if (m_len_s == 0)
+    {
+        return NULL;
+    }
+    wchar_t path[MAX_PATH];
+    wchar_t wmode[MAX_PATH];
+    new_Len1 = MultiByteToWideChar(CP_UTF8, 0, filename, fn_len_s, path, fn_len_s);
+    if (new_Len1 >= MAX_PATH)
+    {
+        return NULL;
+    }
+    path[new_Len1] = L'\0';
+    new_Len2 = MultiByteToWideChar(CP_UTF8, 0, mode, m_len_s, wmode, m_len_s);
+    if (new_Len2 >= MAX_PATH)
+    {
+        return NULL;
+    }
+    wmode[new_Len2] = L'\0';
+    FILE *f = _wfopen(path, wmode);
+    return f;
+#else
+    return fopen(filename, mode);
+#endif
+}
 
 DoomOPL::DoomOPL() :
     midisynth()
@@ -105,7 +143,7 @@ void DoomOPL::OPL_InitRegisters(bool opl_new)
 bool DoomOPL::LoadInstrumentTable(void)
 {
     size_t size, ret;
-    FILE *file = fopen(m_bankPath, "rb");
+    FILE *file = i_fopen(m_bankPath, "rb");
 
     if(!file)
     {
@@ -119,7 +157,10 @@ bool DoomOPL::LoadInstrumentTable(void)
     fseek(file, 0, SEEK_SET);
 
     if(m_lump)
+    {
         free(m_lump);
+        m_lump = NULL;
+    }
 
     if(size < (sizeof(genmidi_instr_t) * (GENMIDI_NUM_INSTRS + GENMIDI_NUM_PERCUSSION)) + strlen(GENMIDI_HEADER))
     {

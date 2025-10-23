@@ -15,8 +15,12 @@
 
 #include <math.h>
 #include <cstdlib>
+#include <cstdint>
 #include <cstring>
 #include <cstdio>
+
+#include "utf8main/utf8main.h"
+#include "wav/wave_writer.h"
 
 #ifndef HW_DOS_BUILD
 #   define SDL_MAIN_HANDLED
@@ -66,10 +70,94 @@ static void sig_playing(int)
 void my_audio_callback(void *midi_player, Uint8 *stream, int len)
 {
     MIDI_Seq *mp = (MIDI_Seq*)midi_player;
-    int got = mp->playBuffer(stream, len);
+    size_t got = mp->playBuffer(stream, len);
 
     if(got == 0)
         is_playing = 0;
+}
+
+static void *init_wave_writer(const SDL_AudioSpec &spec, const char *waveOutFile)
+{
+    void *ctx = NULL;
+    int format = WAVE_FORMAT_PCM;
+    int sampleSize = 2;
+    int hasSign = 1;
+    int isBigEndian = 0;
+
+    switch(spec.format)
+    {
+    case AUDIO_U8:
+        sampleSize = 1;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 0;
+        isBigEndian = 0;
+        break;
+    case AUDIO_S8:
+        sampleSize = 1;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 1;
+        isBigEndian = 0;
+        break;
+    case AUDIO_U16LSB:
+        sampleSize = 2;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 0;
+        isBigEndian = 0;
+        break;
+    case AUDIO_S16LSB:
+        sampleSize = 2;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 1;
+        isBigEndian = 0;
+        break;
+    case AUDIO_U16MSB:
+        sampleSize = 2;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 0;
+        isBigEndian = 1;
+        break;
+    case AUDIO_S16MSB:
+        sampleSize = 2;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 1;
+        isBigEndian = 1;
+        break;
+    case AUDIO_S32MSB:
+        sampleSize = 4;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 1;
+        isBigEndian = 1;
+        break;
+    case AUDIO_S32LSB:
+        sampleSize = 4;
+        format = WAVE_FORMAT_PCM;
+        hasSign = 1;
+        isBigEndian = 0;
+        break;
+    default:
+    case AUDIO_F32MSB:
+        sampleSize = 4;
+        format = WAVE_FORMAT_IEEE_FLOAT;
+        hasSign = 1;
+        isBigEndian = 1;
+        break;
+    case AUDIO_F32LSB:
+        sampleSize = 4;
+        format = WAVE_FORMAT_IEEE_FLOAT;
+        hasSign = 1;
+        isBigEndian = 0;
+        break;
+    }
+
+    ctx = ctx_wave_open(spec.channels,
+                        spec.freq,
+                        sampleSize,
+                        format,
+                        hasSign,
+                        isBigEndian,
+                        waveOutFile);
+
+    return ctx;
 }
 #endif
 
@@ -413,6 +501,40 @@ static void runDOSLoop(MIDI_Seq *myDevice)
 
     myDevice->panic(); //Shut up all sustaining notes
 }
+#else
+
+static int runWaveOutLoopLoop(MIDI_Seq &player, const char *musPath, const char *wavPath, const struct SDL_AudioSpec &spec)
+{
+    const size_t buffer_size = 1024 * sizeof(float) * 2;
+    uint8_t buffer[buffer_size];
+    size_t got = 0;
+    void *wave = NULL;
+    std::fprintf(stdout, " - Recording %s to WAV file %s...\n", musPath, wavPath);
+    std::fprintf(stdout, "\n==========================================\n");
+    flushout(stdout);
+
+    wave = init_wave_writer(spec, wavPath);
+    if(!wave)
+    {
+        fprintf(stderr, "ERROR: Couldn't open wave writer for output %s\n", wavPath);
+        fflush(stdout);
+        return 1;
+    }
+
+    while(is_playing)
+    {
+        got = player.playBuffer(buffer, buffer_size);
+        if(got == 0)
+            break;
+
+        ctx_wave_write(wave, buffer, got);
+        s_timeCounter.printProgress(player.tell());
+    }
+
+    ctx_wave_close(wave);
+
+    return 0;
+}
 #endif
 
 struct Args
@@ -423,6 +545,8 @@ struct Args
 #ifndef HW_DOS_BUILD
     int emu_type = EMU_NUKED_OPL3;
     float gain = 2.0f;
+    bool wave = false;
+    const char *waveFile = nullptr;
 #endif
 
     bool loop = false;
@@ -463,7 +587,13 @@ struct Args
                 bank = *argv;
             }
             else if(!std::strcmp(cur, "-loop"))
+            {
+#ifdef HW_DOS_BUILD
                 loop = true;
+#else
+                loop = !wave;
+#endif
+            }
             else if(!std::strcmp(cur, "-setup"))
             {
                 --argc;
@@ -520,6 +650,17 @@ struct Args
 
                 gain = std::atof(*argv);
             }
+            else if(!std::strcmp(cur, "-wave"))
+            {
+                --argc;
+                ++argv;
+                if(argc == 0)
+                    return printArgFail("-wave");
+
+                wave = true;
+                loop = false;
+                waveFile = *argv;
+            }
             else if(!std::strcmp(cur, "-emu"))
             {
                 --argc;
@@ -568,6 +709,7 @@ struct Args
 
 int main(int argc, char **argv)
 {
+    int ret = 0;
 #ifndef HW_DOS_BUILD
     static SDL_AudioSpec spec, obtained;
 #endif
@@ -614,11 +756,7 @@ int main(int argc, char **argv)
     std::fprintf(stdout, " - Use bank [%s]\n", args.bank);
     flushout(stdout);
 
-#ifndef HW_DOS_BUILD
-    /* Initialize SDL.*/
-    if(SDL_Init(SDL_INIT_AUDIO) < 0)
-        return 1;
-#else
+#ifdef HW_DOS_BUILD
     s_timeCounter.initDosTimer();
     s_timeCounter.flushDosTimer();
 #endif
@@ -640,23 +778,29 @@ int main(int argc, char **argv)
     signal(SIGTERM, &sig_playing);
 
 #ifndef HW_DOS_BUILD
-    memset(&spec, 0, sizeof(SDL_AudioSpec));
+    SDL_memset(&spec, 0, sizeof(SDL_AudioSpec));
     spec.freq = 48000;
     spec.format = AUDIO_F32SYS;
     spec.channels = 2;
     spec.samples = buffer_size;
 
-    /* set the callback function */
-    spec.callback = my_audio_callback;
-    /* set ADLMIDI's descriptor as userdata to use it for sound generation */
-    spec.userdata = &player;
-
-        /* Open the audio device */
-    if(SDL_OpenAudio(&spec, &obtained) < 0)
+    /* Open the target wave file */
+    if(args.wave)
+        SDL_memcpy(&obtained, &spec, sizeof(SDL_AudioSpec));
+    else
     {
-        fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-        fflush(stdout);
-        return 1;
+        /* set the callback function */
+        spec.callback = my_audio_callback;
+        /* set ADLMIDI's descriptor as userdata to use it for sound generation */
+        spec.userdata = &player;
+
+        /* Open the audio device if not writing WAV file */
+        if(SDL_OpenAudio(&spec, &obtained) < 0)
+        {
+            fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+            fflush(stdout);
+            return 1;
+        }
     }
 
     printf(" - Gain factor: %g\n", args.gain);
@@ -710,11 +854,13 @@ int main(int argc, char **argv)
 
 #ifndef HW_DOS_BUILD
     /* Start playing */
-    SDL_PauseAudio(0);
+    if(!args.wave)
+        SDL_PauseAudio(0);
 #endif
 
 #ifndef HW_DOS_BUILD
-    printf("Playing... Hit Ctrl+C to quit!\n");
+    if(!args.wave)
+        printf("Playing... Hit Ctrl+C to quit!\n");
 #else
     printf("Playing... Hit Ctrl+C or ESC to quit!\n");
 #endif
@@ -723,14 +869,19 @@ int main(int argc, char **argv)
     /* wait until we're don't playing */
     s_timeCounter.clearLineR();
 
-    while(is_playing)
+    if(args.wave)
+    {
+        ret = runWaveOutLoopLoop(player, args.song, args.waveFile, spec);
+    }
+    else while(is_playing)
     {
         s_timeCounter.printTime(player.tell());
         SDL_Delay(1);
     }
 
     /* shut everything down */
-    SDL_CloseAudio();
+    if(!args.wave)
+        SDL_CloseAudio();
     SDL_Quit();
 #else
     runDOSLoop(&player);
@@ -740,5 +891,5 @@ int main(int argc, char **argv)
     printf("\n");
     fflush(stdout);
 
-    return 0;
+    return ret;
 }

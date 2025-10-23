@@ -88,7 +88,7 @@ public:
     void panic();
 
 #ifndef HW_DOS_BUILD
-    int playBuffer(unsigned char *out, size_t len);
+    size_t playBuffer(unsigned char *out, size_t len);
 #endif
 };
 
