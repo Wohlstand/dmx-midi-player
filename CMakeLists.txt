@@ -57,7 +57,8 @@ add_executable(dmxplay
     src/emu_list.h
 )
 
-if(USE_VENDORED_SDL2)
+if(USE_STATIC_LIBC)
+#    target_link_libraries(dmxplay PRIVATE -Wl,-Bstatic -lpthread, -Wl,-Bdynamic)
     target_link_libraries(dmxplay PRIVATE -static-libgcc -static-libstdc++)
 endif()
 
