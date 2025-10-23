@@ -133,7 +133,8 @@ jobs:
     - name: Pack
       shell: bash
       run: |
-        ls -la bin/
+        pwd
+        ls -la
         ls -la build/*.exe
         mkdir _packed
         zip -j -9 _packed/dmxplay-dos32.zip build/dmxplay.exe bin/CWSDPMI.EXE banks/*.op2
