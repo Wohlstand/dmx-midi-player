@@ -59,6 +59,10 @@ else()
     set(LIBRARY_STATIC_NAME_SUFFIX "")
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_DEBUG_POSTFIX d)
+endif()
+
 # Library path helpers
 macro(set_static_lib OUTPUT_VAR LIBDIR LIBNAME)
     set(${OUTPUT_VAR} "${LIBDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${LIBNAME}${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}")
