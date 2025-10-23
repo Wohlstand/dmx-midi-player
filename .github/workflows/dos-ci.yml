@@ -133,7 +133,8 @@ jobs:
     - name: Pack
       shell: bash
       run: |
-        zip -j -9 dmxplay-dos32.zip build/dmxplay.exe bin/CWSDPMI.EXE banks/*.op2
+        mkdir _packed
+        zip -j -9 _packed/dmxplay-dos32.zip build/dmxplay.exe bin/CWSDPMI.EXE banks/*.op2
 
     - name: Deploy to builds.wohlsoft.ru
       if: success() && github.event_name != 'pull_request' && steps.event-check.outputs.is_pull_request == 'false' && steps.upload-check.outputs.available == 'true'
