@@ -219,6 +219,9 @@ bool MIDI_Seq::openBank(const char *bank)
 
 bool MIDI_Seq::openMusic(const char *music)
 {
+    if(!music)
+        return false;
+
     return m_sequencer->loadMIDI(music);
 }
 
