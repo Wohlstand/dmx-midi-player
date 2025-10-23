@@ -13,14 +13,9 @@
 //
 
 #include "../interface.h"
+
 #ifndef HW_DOS_BUILD
-#   include "opl3.h"
 class OPLChipBase;
-#else
-#include <stdint.h>
-typedef uint16_t            Bit16u;
-typedef int16_t             Bit16s;
-typedef uint64_t            Bit64u;
 #endif
 
 class opl3class : public fm_chip {

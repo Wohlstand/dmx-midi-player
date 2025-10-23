@@ -15,7 +15,6 @@
 #include "opl3class.h"
 
 #ifndef HW_DOS_BUILD
-#include <string.h>
 #include "../emu_list.h"
 #include "chips/dosbox_opl3.h"
 #include "chips/nuked_opl3.h"
@@ -26,7 +25,6 @@
 #include "chips/opal_opl3.h"
 #include "chips/ym3812_lle.h"
 #include "chips/ymf262_lle.h"
-const Bit64u lat = (50 * 49716) / 1000;
 #endif
 
 #ifdef HW_DOS_BUILD
