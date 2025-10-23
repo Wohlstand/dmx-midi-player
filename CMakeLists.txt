@@ -49,6 +49,10 @@ if(NOT MSVC AND NOT MSDOS)
         set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-undefined" )
     endif()
 endif()
+
+if(WIN32)
+    add_definitions(-DWINVER=0x0501 -D_WIN32_WINNT=0x0501)
+endif()
 #===========================================================================================
 
 
