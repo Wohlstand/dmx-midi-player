@@ -386,6 +386,7 @@ private:
     void PitchBendEvent(unsigned char channel_num, unsigned char bend);
     void InitChannel(opl_channel_data_t *channel);
     int InitSynth();
+    int SoftReset();
 public:
     ~DoomOPL();
 

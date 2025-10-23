@@ -1055,7 +1055,7 @@ void DoomOPL::midi_panic()
 void DoomOPL::midi_reset()
 {
     midi_panic();
-    InitSynth();
+    SoftReset();
 }
 
 // Initialize a channel.
@@ -1152,6 +1152,18 @@ int DoomOPL::InitSynth()
     }
 
     InitVoices();
+
+    return 1;
+}
+
+int DoomOPL::SoftReset()
+{
+    unsigned int i;
+    memset(channels, 0, sizeof(channels));
+
+    for (i = 0; i < MIDI_CHANNELS_PER_TRACK; i++) {
+        InitChannel(&channels[i]);
+    }
 
     return 1;
 }
