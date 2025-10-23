@@ -300,7 +300,7 @@ retry:
     if(len == 0 || len > init_len || attempts > 10)
         return out_written;
 
-    filled = SDL_AudioStreamGet(m_stream, m_gainBuffer, len);
+    filled = SDL_AudioStreamGet(m_stream, m_gainBuffer, len > m_gainBuffer_max_size ? m_gainBuffer_max_size : len);
 
     if(filled != 0)
     {

@@ -13,7 +13,7 @@
 //
 
 
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
