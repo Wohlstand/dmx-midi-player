@@ -117,7 +117,7 @@ jobs:
         echo "====================================="
         cmake --version
         echo "====================================="
-        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/djgpp -DCMAKE_INSTALL_LIBDIR:PATH=/usr/local/djgpp/lib -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_TOOLCHAIN_FILE=`pwd`/cmake/djgpp/toolchain-djgpp.cmake -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DCMAKE_INSTALL_PREFIX="`pwd`/dmxplay" ${{ matrix.config.extra_options }} .
+        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/djgpp -DCMAKE_INSTALL_LIBDIR:PATH=/usr/local/djgpp/lib -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_TOOLCHAIN_FILE=`pwd`/cmake/ci_dos_djgpp_toolchain.cmake -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DCMAKE_INSTALL_PREFIX="`pwd`/dmxplay" ${{ matrix.config.extra_options }} .
 
     - name: Build
       shell: bash
