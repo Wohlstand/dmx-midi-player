@@ -541,12 +541,14 @@ struct Args
 {
     const char *song = nullptr;
     const char *setup = nullptr;
+    char setupString[50] = "";
     const char *bank = "genmidi.op2";
 #ifndef HW_DOS_BUILD
     int emu_type = EMU_NUKED_OPL3;
     float gain = 2.0f;
     bool wave = false;
     const char *waveFile = nullptr;
+    char wavePath[2048] = "";
 #endif
 
     bool loop = false;
@@ -602,6 +604,21 @@ struct Args
                     return printArgFail("-setup");
                 setup = *argv;
             }
+            else if(!std::strcmp(cur, "-opl3"))
+            {
+                setup = setupString;
+                std::strncat(setupString, "-opl3 ", 50);
+            }
+            else if(!std::strcmp(cur, "-doom1"))
+            {
+                setup = setupString;
+                std::strncat(setupString, "-doom1 ", 50);
+            }
+            else if(!std::strcmp(cur, "-doom2"))
+            {
+                setup = setupString;
+                std::strncat(setupString, "-doom2 ", 50);
+            }
 #ifdef HW_DOS_BUILD
             else if(!std::strcmp(cur, "-freq"))
             {
@@ -638,6 +655,8 @@ struct Args
                 return printArgNoSup("-emu");
             else if(!std::strcmp(cur, "-gain"))
                 return printArgNoSup("-gain");
+            else if(!std::strcmp(cur, "-towave"))
+                return printArgNoSup("-towave");
 #else
             else if(!std::strcmp(cur, "-freq"))
                 return printArgNoSup("-freq");
@@ -660,6 +679,11 @@ struct Args
                 wave = true;
                 loop = false;
                 waveFile = *argv;
+            }
+            else if(!std::strcmp(cur, "-towave"))
+            {
+                wave = true;
+                loop = false;
             }
             else if(!std::strcmp(cur, "-emu"))
             {
@@ -696,6 +720,14 @@ struct Args
             else
             {
                 song = *argv;
+#ifndef HW_DOS_BUILD
+                if(wave && !waveFile)
+                {
+                    std::strncpy(wavePath, song, 2048);
+                    std::strncat(wavePath, ".wav", 2048);
+                    waveFile = wavePath;
+                }
+#endif
                 break; // Finish parse
             }
 
@@ -726,27 +758,30 @@ int main(int argc, char **argv)
     {
         printf("\n"
                "USAGE:\n\n"
-               "  dmxplay [-bank <file.op2>] [-setup \"<string>\"] [-loop] <filename>\n"
+               "  dmxplay [options] <filename>\n"
                "\n"
                "  <filename>       - Path to music file to play. Required.\n"
+               "\n"
+               "Supported options:\n"
                "  -bank <file.op2> - Path to custom OP2 bank file.\n"
                "  -loop            - Enable looping of the opened music file.\n"
 #ifdef HW_DOS_BUILD
                "  -addr <0xVAL>    - [DOS ONLY] Set the hardware OPL2/OPL3 address.\n"
                "                     Default is 0x388.\n"
 #endif
-               "  -setup \"string\" - Set a quoted space-separated setup string for synth.\n"
-               "      Supported options:\n"
-               "        \"-opl3\"  - enable OPL3 mode (by default the OPL2 mode).\n"
-               "        \"-doom1\" - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
-               "        \"-doom2\" - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
 #ifndef HW_DOS_BUILD
-               "  -gain <value>  - [Non-DOS ONLY] Set the gaining factor (default 2.0).\n"
+               "  -gain <value>    - [Non-DOS ONLY] Set the gaining factor (default 2.0).\n"
                "  -wave <path.wav> - [Non-DOS ONLY] Record output into WAV file of spcified path.\n"
-               "  -emu <name>  - [Non-DOS ONLY] Select playback chip emulator:\n"
-               "       nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
-               "       mame-opl2, lle-opl2, lle-opl3\n"
+               "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
+               "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
+               "                     nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
+               "                     mame-opl2, lle-opl2, lle-opl3\n"
 #endif
+               "  -opl3            - Enable OPL3 mode (by default the OPL2 mode).\n"
+               "  -doom1           - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
+               "  -doom2           - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
+               "  -setup \"string\"  - Set a quoted space-separated setup string for synth\n"
+               "                     same as DMXOPTION environment variable.\n"
                "\n");
         fflush(stdout);
         return 1;
