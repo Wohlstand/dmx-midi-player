@@ -71,6 +71,12 @@ jobs:
         sudo mkdir -p /usr/local
         sudo tar -xvf djgpp.tar.gz -C /usr/local/
 
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 3
+        submodules: recursive
+
+    # Download this AFTER the repo clonned, otherwise it gets wiped during clone
     - name: Download CSDPMI7B
       if: matrix.config.csdpmi7b_download
       uses: carlosperate/download-file-action@v2
@@ -83,11 +89,6 @@ jobs:
       shell: bash
       run: |
         unzip -v dpmi.zip
-
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 3
-        submodules: recursive
 
     - uses: Wohlstand/branch-name@v1.0.1-wohl
 
@@ -133,9 +134,6 @@ jobs:
     - name: Pack
       shell: bash
       run: |
-        pwd
-        ls -la
-        ls -la build/*.exe
         mkdir _packed
         zip -j -9 _packed/dmxplay-dos32.zip build/dmxplay.exe bin/CWSDPMI.EXE banks/*.op2
 
