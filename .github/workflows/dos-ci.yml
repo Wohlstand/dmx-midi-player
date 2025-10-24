@@ -71,6 +71,24 @@ jobs:
         sudo mkdir -p /usr/local
         sudo tar -xvf djgpp.tar.gz -C /usr/local/
 
+    # Download this AFTER the repo clonned, otherwise it gets wiped during clone
+    - name: Download CSDPMI7B
+      if: matrix.config.csdpmi7b_download
+      uses: carlosperate/download-file-action@v2
+      with:
+        file-url: "${{ matrix.config.csdpmi7b_download }}"
+        file-name: dpmi.zip
+
+    - name: Extract CSDPMI7B
+      if: matrix.config.csdpmi7b_download
+      shell: bash
+      run: |
+        oldpath=`pwd`
+        mkdir -p $HOME/dpmi
+        cd $HOME/dpmi
+        unzip -v $oldpath/dpmi.zip
+        cd $oldpath
+
     - uses: actions/checkout@v3
       with:
         fetch-depth: 3
@@ -89,20 +107,6 @@ jobs:
           echo "--- This build is a normal branch build ---"
           echo "is_pull_request=false" >> $GITHUB_OUTPUT;
         fi
-
-    # Download this AFTER the repo clonned, otherwise it gets wiped during clone
-    - name: Download CSDPMI7B
-      if: matrix.config.csdpmi7b_download
-      uses: carlosperate/download-file-action@v2
-      with:
-        file-url: "${{ matrix.config.csdpmi7b_download }}"
-        file-name: dpmi.zip
-
-    - name: Extract CSDPMI7B
-      if: matrix.config.csdpmi7b_download
-      shell: bash
-      run: |
-        unzip -v dpmi.zip
 
     - name: Configure
       shell: bash
@@ -135,7 +139,7 @@ jobs:
       shell: bash
       run: |
         mkdir _packed
-        zip -j -9 _packed/dmxplay-dos32.zip build/dmxplay.exe bin/CWSDPMI.EXE banks/*.op2
+        zip -j -9 _packed/dmxplay-dos32.zip build/dmxplay.exe $HOME/dpmi/bin/CWSDPMI.EXE banks/*.op2
 
     - name: Deploy to builds.wohlsoft.ru
       if: success() && github.event_name != 'pull_request' && steps.event-check.outputs.is_pull_request == 'false' && steps.upload-check.outputs.available == 'true'

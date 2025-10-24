@@ -1,4 +1,5 @@
 /build/*
+/build-*/*
 *.user*
 desktop.ini
 Thumbs.db
