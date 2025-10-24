@@ -86,7 +86,8 @@ jobs:
         oldpath=`pwd`
         mkdir -p $HOME/dpmi
         cd $HOME/dpmi
-        unzip -v $oldpath/dpmi.zip
+        unzip $oldpath/dpmi.zip
+        ls -lR .
         cd $oldpath
 
     - uses: actions/checkout@v3
