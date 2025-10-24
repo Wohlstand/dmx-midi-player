@@ -76,20 +76,6 @@ jobs:
         fetch-depth: 3
         submodules: recursive
 
-    # Download this AFTER the repo clonned, otherwise it gets wiped during clone
-    - name: Download CSDPMI7B
-      if: matrix.config.csdpmi7b_download
-      uses: carlosperate/download-file-action@v2
-      with:
-        file-url: "${{ matrix.config.csdpmi7b_download }}"
-        file-name: dpmi.zip
-
-    - name: Extract CSDPMI7B
-      if: matrix.config.csdpmi7b_download
-      shell: bash
-      run: |
-        unzip -v dpmi.zip
-
     - uses: Wohlstand/branch-name@v1.0.1-wohl
 
     - name: Check if a pull request
@@ -103,6 +89,20 @@ jobs:
           echo "--- This build is a normal branch build ---"
           echo "is_pull_request=false" >> $GITHUB_OUTPUT;
         fi
+
+    # Download this AFTER the repo clonned, otherwise it gets wiped during clone
+    - name: Download CSDPMI7B
+      if: matrix.config.csdpmi7b_download
+      uses: carlosperate/download-file-action@v2
+      with:
+        file-url: "${{ matrix.config.csdpmi7b_download }}"
+        file-name: dpmi.zip
+
+    - name: Extract CSDPMI7B
+      if: matrix.config.csdpmi7b_download
+      shell: bash
+      run: |
+        unzip -v dpmi.zip
 
     - name: Configure
       shell: bash
