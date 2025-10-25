@@ -28,10 +28,8 @@
 #else
 #   include <conio.h>   // getch/kbhit
 #   include <dos.h>     // delay
-#   include <go32.h>
-#   include <sys/farptr.h>
-#define BIOStimer _farpeekl(_dos_ds, 0x46C)
 #   include "dos_tman.h"
+#define BIOStimer DosTaskman::getCurTicks()
 typedef uint32_t Uint32;
 typedef uint8_t Uint8;
 #endif // HW_DOS_BUILD
@@ -313,7 +311,7 @@ static void s_midiLoop(DosTaskman::DosTask *task)
     MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
     const double mindelay = 1.0 / task->getFreq();
 
-    s_midi_tick_delay = player->tick(s_midi_tick_delay < mindelay ? s_midi_tick_delay : mindelay, mindelay);
+    s_midi_tick_delay = player->tick(mindelay, s_midi_tick_delay < mindelay ? s_midi_tick_delay : mindelay);
     if(player->atEnd() && s_midi_tick_delay <= 0)
         is_playing = false;
 }
