@@ -19,26 +19,19 @@
 #include <cstring>
 #include <cstdio>
 
-#include "utf8main/utf8main.h"
-#include "wav/wave_writer.h"
-
 #ifndef HW_DOS_BUILD
+#   include "utf8main/utf8main.h"
+#   include "wav/wave_writer.h"
 #   define SDL_MAIN_HANDLED
 #   include <SDL2/SDL.h>
 #   include "emu_list.h"
 #else
-#   include <conio.h>
-#   include <dos.h>
-#   include <errno.h>
-#   include <stdio.h>
-#   include <string.h>
-#   include <stdint.h>
-#   include <pc.h>
-#   include <dpmi.h>
+#   include <conio.h>   // getch/kbhit
+#   include <dos.h>     // delay
 #   include <go32.h>
 #   include <sys/farptr.h>
-#   include <sys/exceptn.h>
-#   define BIOStimer _farpeekl(_dos_ds, 0x46C)
+#define BIOStimer _farpeekl(_dos_ds, 0x46C)
+#   include "dos_tman.h"
 typedef uint32_t Uint32;
 typedef uint8_t Uint8;
 #endif // HW_DOS_BUILD
@@ -182,6 +175,7 @@ static struct TimeCounter
     char totalHMS[25];
     char loopStartHMS[25];
     char loopEndHMS[25];
+    char linebuff[81];
 #ifdef HAS_S_GETTIME
     char realHMS[25];
 #endif
@@ -197,26 +191,6 @@ static struct TimeCounter
     double realTimeStart;
 #endif
 
-#ifdef HW_DOS_BUILD
-    volatile unsigned long newTimerFreq;
-    volatile unsigned long timerPeriod;
-    int haveYield;
-    int haveDosIdle;
-    volatile unsigned int ring;
-    volatile unsigned long BIOStimer_begin;
-
-    volatile unsigned long timerNext;
-
-    enum wmethod
-    {
-        WM_NONE,
-        WM_YIELD,
-        WM_IDLE,
-        WM_HLT
-    } idleMethod;
-
-#endif
-
     TimeCounter()
     {
         hasLoop = false;
@@ -224,168 +198,8 @@ static struct TimeCounter
         milliseconds_prev = ~0u;
         printsCounter = 0;
         complete_prev = -1;
-
-#ifndef HW_DOS_BUILD
         printsCounterPeriod = 1;
-#else
-        printsCounterPeriod = 20;
-        setDosTimerHZ(209);
-        haveYield = 0;
-        haveDosIdle = 0;
-        ring = 0;
-        idleMethod = WM_NONE;
-
-        timerNext = 0;
-#endif
     }
-
-#ifdef HW_DOS_BUILD
-    void initDosTimer()
-    {
-#   ifdef __DJGPP__
-        /* determine protection ring */
-        __asm__ ("mov %%cs, %0\n\t"
-                 "and $3, %0" : "=r" (ring));
-
-        errno = 0;
-        __dpmi_yield();
-        haveYield = errno ? 0 : 1;
-
-        if(!haveYield)
-        {
-            __dpmi_regs regs;
-            regs.x.ax = 0x1680;
-            __dpmi_int(0x28, &regs);
-            haveDosIdle = regs.h.al ? 0 : 1;
-
-            if(haveDosIdle)
-                idleMethod = WM_IDLE;
-            else if(ring == 0)
-                idleMethod = WM_HLT;
-            else
-                idleMethod = WM_NONE;
-        }
-        else
-        {
-            idleMethod = WM_YIELD;
-        }
-
-        const char *method;
-        switch(idleMethod)
-        {
-        default:
-        case WM_NONE:
-            method = "none";
-            break;
-        case WM_YIELD:
-            method = "yield";
-            break;
-        case WM_IDLE:
-            method = "idle";
-            break;
-        case WM_HLT:
-            method = "hlt";
-            break;
-        }
-
-        std::fprintf(stdout, " - [DOS] Using idle method: %s\n", method);
-#   endif
-    }
-
-    void setDosTimerHZ(unsigned timer)
-    {
-        newTimerFreq = timer;
-        timerPeriod = 0x1234DDul / newTimerFreq;
-    }
-
-    void flushDosTimer()
-    {
-#   ifdef __DJGPP__
-        outportb(0x43, 0x34);
-        outportb(0x40, timerPeriod & 0xFF);
-        outportb(0x40, timerPeriod >>   8);
-#   endif
-
-#   ifdef __WATCOMC__
-        outp(0x43, 0x34);
-        outp(0x40, TimerPeriod & 0xFF);
-        outp(0x40, TimerPeriod >>   8);
-#   endif
-
-        BIOStimer_begin = BIOStimer;
-
-        std::fprintf(stdout, " - [DOS] Running clock with %ld hz\n", newTimerFreq);
-    }
-
-    void restoreDosTimer()
-    {
-#   ifdef __DJGPP__
-        // Fix the skewed clock and reset BIOS tick rate
-        _farpokel(_dos_ds, 0x46C, BIOStimer_begin + (BIOStimer - BIOStimer_begin) * (0x1234DD / 65536.0) / newTimerFreq);
-
-        //disable();
-        outportb(0x43, 0x34);
-        outportb(0x40, 0);
-        outportb(0x40, 0);
-        //enable();
-#   endif
-
-#   ifdef __WATCOMC__
-        outp(0x43, 0x34);
-        outp(0x40, 0);
-        outp(0x40, 0);
-#   endif
-    }
-
-    void waitDosTimer()
-    {
-//__asm__ volatile("sti\nhlt");
-//usleep(10000);
-#       ifdef __DJGPP__
-        switch(idleMethod)
-        {
-        default:
-        case WM_NONE:
-            if(timerNext != 0)
-            {
-                while(BIOStimer < timerNext)
-                    delay(1);
-            }
-
-            timerNext = BIOStimer + 1;
-            break;
-
-        case WM_YIELD:
-            __dpmi_yield();
-            break;
-
-        case WM_IDLE:
-        {
-            __dpmi_regs regs;
-
-            /* the DOS Idle call is documented to return immediately if no other
-             * program is ready to run, therefore do one HLT if we can */
-            if(ring == 0)
-                __asm__ volatile ("hlt");
-
-            regs.x.ax = 0x1680;
-            __dpmi_int(0x28, &regs);
-            if (regs.h.al)
-                errno = ENOSYS;
-            break;
-        }
-
-        case WM_HLT:
-            __asm__ volatile("hlt");
-            break;
-        }
-#       endif
-#       ifdef __WATCOMC__
-        //dpmi_dos_yield();
-        mch_delay((unsigned int)(tick_delay * 1000.0));
-#       endif
-    }
-#endif
 
     void setTotal(double total)
     {
@@ -409,15 +223,34 @@ static struct TimeCounter
         }
     }
 
+#ifdef HW_DOS_BUILD
+    void waitDosTimerTick()
+    {
+        volatile unsigned long timer = BIOStimer;
+        while(timer == BIOStimer);
+    }
+#endif
+
+    void initLineBuff()
+    {
+        std::memset(linebuff, ' ', sizeof(linebuff));
+        linebuff[80] = '\0';
+        linebuff[79] = '\r';
+    }
+
     void clearLineR()
     {
-        std::fprintf(stdout, "                                               \r");
+        initLineBuff();
+        std::fprintf(stdout, "%s", linebuff);
         flushout(stdout);
     }
 
     void printTime(double pos)
     {
         uint64_t milliseconds = static_cast<uint64_t>(pos * 1000.0);
+
+        initLineBuff();
+        int len;
 
         if(milliseconds != milliseconds_prev)
         {
@@ -428,15 +261,20 @@ static struct TimeCounter
 #ifdef HAS_S_GETTIME
                 secondsToHMSM(s_getTime() - realTimeStart, realHMS, 25);
 #endif
-                std::fprintf(stdout, "                                               \r");
+                // std::fprintf(stdout, "                                                        \r");
 #ifdef HAS_S_GETTIME
-                std::fprintf(stdout, "Time position: %s / %s [Real time: %s]\r", posHMS, totalHMS, realHMS);
+                len = std::snprintf(linebuff, 79, "Time position: %s / %s [Real time: %s]\r", posHMS, totalHMS, realHMS);
 #else
-                std::fprintf(stdout, "Time position: %s / %s\r", posHMS, totalHMS);
+                len = std::snprintf(linebuff, 79, "Time position: %s / %s", posHMS, totalHMS);
 #endif
+                if(len > 0)
+                    memset(linebuff + len, ' ',  79 - len);
+                linebuff[79] = '\r';
+                std::fprintf(stdout, "%s", linebuff);
                 flushout(stdout);
                 milliseconds_prev = milliseconds;
             }
+
             printsCounter++;
         }
     }
@@ -456,38 +294,39 @@ static struct TimeCounter
 
     void clearLine()
     {
-        std::fprintf(stdout, "                                               \n\n");
+        initLineBuff();
+        std::fprintf(stdout, "%s\n\n", linebuff);
         flushout(stdout);
     }
 
 } s_timeCounter;
 
 #ifdef HW_DOS_BUILD
+
+static double s_midi_tick_delay = 0.00000001;
+
+static void s_midiLoop(DosTaskman::DosTask *task)
+{
+    if(!is_playing)
+        return;
+
+    MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
+    const double mindelay = 1.0 / task->getFreq();
+
+    s_midi_tick_delay = player->tick(s_midi_tick_delay < mindelay ? s_midi_tick_delay : mindelay, mindelay);
+    if(player->atEnd() && s_midi_tick_delay <= 0)
+        is_playing = false;
+}
+
 static void runDOSLoop(MIDI_Seq *myDevice)
 {
-    double tick_delay = 0.0;
-
     s_timeCounter.clearLineR();
 
     while(is_playing)
     {
-        const double mindelay = 1.0 / s_timeCounter.newTimerFreq;
-
 #   ifndef DEBUG_TRACE_ALL_EVENTS
         s_timeCounter.printTime(myDevice->tell());
 #   endif
-
-        s_timeCounter.waitDosTimer();
-
-        static unsigned long PrevTimer = BIOStimer;
-        const unsigned long CurTimer = BIOStimer;
-        const double eat_delay = (CurTimer - PrevTimer) / (double)s_timeCounter.newTimerFreq;
-        PrevTimer = CurTimer;
-
-        tick_delay = myDevice->tick(eat_delay, mindelay);
-
-        if(myDevice->atEnd() && tick_delay <= 0)
-            is_playing = false;
 
         if(kbhit())
         {   // Quit on ESC key!
@@ -495,6 +334,8 @@ static void runDOSLoop(MIDI_Seq *myDevice)
             if(c == 27)
                 is_playing = false;
         }
+
+        s_timeCounter.waitDosTimerTick();
     }
 
     s_timeCounter.clearLine();
@@ -555,6 +396,7 @@ struct Args
 
 #ifdef HW_DOS_BUILD
     uint16_t hw_addr = 0x388;
+    unsigned clock_freq = 209;
 #endif
 
     bool printArgFail(const char *arg)
@@ -634,7 +476,7 @@ struct Args
                     return false;
                 }
 
-                s_timeCounter.setDosTimerHZ(timerFreq);
+                clock_freq = timerFreq;
             }
             else if(!std::strcmp(cur, "-addr"))
             {
@@ -744,6 +586,8 @@ int main(int argc, char **argv)
     int ret = 0;
 #ifndef HW_DOS_BUILD
     static SDL_AudioSpec spec, obtained;
+#else
+    DosTaskman taskMan;
 #endif
     MIDI_Seq player;
     Args args;
@@ -794,11 +638,6 @@ int main(int argc, char **argv)
     std::fprintf(stdout, " - Use bank [%s]\n", args.bank);
     flushout(stdout);
 
-#ifdef HW_DOS_BUILD
-    s_timeCounter.initDosTimer();
-    s_timeCounter.flushDosTimer();
-#endif
-
     signal(SIGINT, &sig_playing);
     signal(SIGTERM, &sig_playing);
 
@@ -847,6 +686,7 @@ int main(int argc, char **argv)
     player.setGain(args.gain);
 #else
     player.set_hw_addr(args.hw_addr);
+    std::fprintf(stdout, " - [DOS] Running clock with %u hz\n", args.clock_freq);
 #endif
 
 #ifdef HW_DOS_BUILD
@@ -922,8 +762,11 @@ int main(int argc, char **argv)
         SDL_CloseAudio();
     SDL_Quit();
 #else
+    DosTaskman::DosTask *midiTask = taskMan.addTask(s_midiLoop, args.clock_freq, 1, &player);
+    taskMan.dispatch();
     runDOSLoop(&player);
-    s_timeCounter.restoreDosTimer();
+    taskMan.terminate(midiTask);
+    // s_timeCounter.restoreDosTimer();
 #endif
 
     printf("\n");

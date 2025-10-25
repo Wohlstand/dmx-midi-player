@@ -27,6 +27,11 @@ if(NOT MSDOS_BUILD)
     else()
         find_package(SDL2 REQUIRED)
     endif()
+else()
+    set(DOS_SOURCES
+        src/dos_tman.h
+        src/dos_tman.cpp
+    )
 endif()
 
 include(src/utf8main/utf8main.cmake)
@@ -36,6 +41,7 @@ add_executable(dmxplay
 
     src/interface.h
 
+    ${DOS_SOURCES}
     ${AUDIO_OUT_SRC}
     ${CHIPS_SOURCES}
     ${UTF8MAIN_SRCS}
