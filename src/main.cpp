@@ -19,6 +19,8 @@
 #include <cstring>
 #include <cstdio>
 
+#define VERSION "1.0.0"
+
 #ifndef HW_DOS_BUILD
 #   include "utf8main/utf8main.h"
 #   include "wav/wave_writer.h"
@@ -590,10 +592,13 @@ int main(int argc, char **argv)
     MIDI_Seq player;
     Args args;
 
-    printf("=========================================\n"
-           "DMX-like MIDI player by Vitaliy Novichkov\n"
-           "Baded on Nuked.Ykt's WinMM driver\n"
-           "=========================================\n");
+    printf("==============================================================\n"
+           "DMX-like MIDI player by Vitaliy Novichkov, version " VERSION "\n"
+           "Based on Nuke.Ykt's WinMM driver\n"
+           "==============================================================\n"
+           "(c) 2025 Vitaliy Novichkov, licensed under GNU GPLv2+\n"
+           "Soure code: https://github.com/Wohlstand/dmx-midi-player/\n"
+           "==============================================================\n");
     fflush(stdout);
 
     if(argc < 2 || !args.parseArgs(argc, argv))
