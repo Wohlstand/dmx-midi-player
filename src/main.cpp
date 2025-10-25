@@ -303,7 +303,8 @@ static struct TimeCounter
 
 #ifdef HW_DOS_BUILD
 
-static double s_midi_tick_delay = 0.00000001;
+static double s_extra_delay = 0.0;
+static DosTaskman *s_taskman = NULL;
 
 static void s_midiLoop(DosTaskman::DosTask *task)
 {
@@ -312,9 +313,23 @@ static void s_midiLoop(DosTaskman::DosTask *task)
 
     MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
     const double mindelay = 1.0 / task->getFreq();
+    volatile unsigned long begin = BIOStimer;
+    volatile unsigned long end;
+    double tickDelay;
 
-    s_midi_tick_delay = player->tick(mindelay, s_midi_tick_delay < mindelay ? s_midi_tick_delay : mindelay);
-    if(player->atEnd() && s_midi_tick_delay <= 0)
+    tickDelay = player->tick(mindelay + s_extra_delay, mindelay / 10.0);
+
+    end = BIOStimer;
+    s_extra_delay = 0.0;
+
+    if(s_taskman && end > begin)
+    {
+        double delay = (end - begin) / (double)s_taskman->getCurClockRate();
+        if(delay > mindelay)
+            s_extra_delay = (mindelay - delay);
+    }
+
+    if(player->atEnd() && tickDelay <= 0)
         is_playing = false;
 }
 
@@ -783,6 +798,7 @@ int main(int argc, char **argv)
     SDL_Quit();
 #else
     DosTaskman::DosTask *midiTask = taskMan.addTask(s_midiLoop, args.clock_freq, 1, &player);
+    s_taskman = &taskMan;
     taskMan.dispatch();
     runDOSLoop(&player);
     taskMan.terminate(midiTask);
