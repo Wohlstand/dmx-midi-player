@@ -433,26 +433,57 @@ struct Args
 
     bool printArgFail(const char *arg)
     {
-        printf("ERROR: Argument %s requires an option!", arg);
-        fflush(stdout);
+        fprintf(stderr, "ERROR: Argument %s requires an option!\n", arg);
+        fflush(stderr);
         return false;
     }
 
     bool printArgNoSup(const char *arg)
     {
-        printf("ERROR: Argument %s is not supported on this platform\n", arg);
+        fprintf(stderr, "ERROR: Argument %s is not supported on this platform\n", arg);
+        fflush(stderr);
         return false;
     }
 
+#define ARG_SHIFT() \
+    --argc; \
+    ++argv
+
+    class ArgsS
+    {
+        int m_argc;
+        char **m_argv;
+    public:
+        explicit ArgsS(int argc, char **argv) :
+            m_argc(argc), m_argv(argv)
+        {}
+
+        bool end()
+        {
+            return m_argc <= 0;
+        }
+
+        void shift()
+        {
+            --m_argc;
+            ++m_argv;
+        }
+
+        const char *arg()
+        {
+            return *m_argv;
+        }
+    };
+
     bool parseArgs(int argc, char **argv)
     {
-        // Skip first arg
-        --argc;
-        ++argv;
+        ArgsS a(argc, argv);
+        // Skip first arg (path to self application)
+        a.shift();
 
-        while(argc > 0)
+        while(!a.end())
         {
-            char *cur = *argv;
+            const char *cur = a.arg();
 
             if(!std::strcmp(cur, "-bank"))
             {
@@ -461,6 +492,11 @@ struct Args
                 if(argc == 0)
                     return printArgFail("-bank");
                 bank = *argv;
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
+                bank = a.arg();
+            }
             }
             else if(!std::strcmp(cur, "-loop"))
             {
@@ -472,11 +508,10 @@ struct Args
             }
             else if(!std::strcmp(cur, "-setup"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-setup");
-                setup = *argv;
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
+                setup = a.arg();
             }
             else if(!std::strcmp(cur, "-opl3"))
             {
@@ -496,12 +531,11 @@ struct Args
 #ifdef HW_DOS_BUILD
             else if(!std::strcmp(cur, "-freq"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-freq");
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
 
-                unsigned timerFreq = std::strtoul(*argv, NULL, 0);
+                unsigned timerFreq = std::strtoul(a.arg(), NULL, 0);
                 if(timerFreq == 0)
                 {
                     printf("The option -freq requires a non-zero integer argument!\n");
@@ -512,10 +546,9 @@ struct Args
             }
             else if(!std::strcmp(cur, "-addr"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-addr");
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
 
                 hw_addr = std::strtoul(argv[3], NULL, 0);
                 if(hw_addr == 0)
@@ -536,23 +569,21 @@ struct Args
                 return printArgNoSup("-freq");
             else if(!std::strcmp(cur, "-gain"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-gain");
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
 
-                gain = std::atof(*argv);
+                gain = std::atof(a.arg());
             }
             else if(!std::strcmp(cur, "-wave"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-wave");
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
 
                 wave = true;
                 loop = false;
-                waveFile = *argv;
+                waveFile = a.arg();
             }
             else if(!std::strcmp(cur, "-towave"))
             {
@@ -561,39 +592,38 @@ struct Args
             }
             else if(!std::strcmp(cur, "-emu"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-emu");
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
 
-                if(!std::strcmp(*argv, "nuked"))
+                if(!std::strcmp(a.arg(), "nuked"))
                     emu_type = EMU_NUKED_OPL3;
-                else if(!std::strcmp(*argv, "dosbox"))
+                else if(!std::strcmp(a.arg(), "dosbox"))
                     emu_type = EMU_DOSBOX_OPL3;
-                else if(!std::strcmp(*argv, "java"))
+                else if(!std::strcmp(a.arg(), "java"))
                     emu_type = EMU_JAVA_OPL3;
-                else if(!std::strcmp(*argv, "opal"))
+                else if(!std::strcmp(a.arg(), "opal"))
                     emu_type = EMU_OPAL_OPL3;
-                else if(!std::strcmp(*argv, "ymfm-opl2"))
+                else if(!std::strcmp(a.arg(), "ymfm-opl2"))
                     emu_type = EMU_YMFM_OPL2;
-                else if(!std::strcmp(*argv, "ymfm-opl3"))
+                else if(!std::strcmp(a.arg(), "ymfm-opl3"))
                     emu_type = EMU_YMFM_OPL3;
-                else if(!std::strcmp(*argv, "mame-opl2"))
+                else if(!std::strcmp(a.arg(), "mame-opl2"))
                     emu_type = EMU_MAME_OPL2;
-                else if(!std::strcmp(*argv, "lle-opl2"))
+                else if(!std::strcmp(a.arg(), "lle-opl2"))
                     emu_type = EMU_OPL2_LLE;
-                else if(!std::strcmp(*argv, "lle-opl3"))
+                else if(!std::strcmp(a.arg(), "lle-opl3"))
                     emu_type = EMU_OPL3_LLE;
                 else
                 {
-                    printf("ERROR: Invalid emulator name: %s\n", *argv);
+                    printf("ERROR: Invalid emulator name: %s\n", a.arg());
                     return false;
                 }
             }
 #endif
             else
             {
-                song = *argv;
+                song = a.arg();
 #ifndef HW_DOS_BUILD
                 if(wave && !waveFile)
                 {
@@ -605,8 +635,7 @@ struct Args
                 break; // Finish parse
             }
 
-            --argc;
-            ++argv;
+            a.shift();
         }
 
         return true;
