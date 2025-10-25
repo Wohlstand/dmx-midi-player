@@ -38,11 +38,10 @@ typedef uint8_t Uint8;
 #endif // HW_DOS_BUILD
 
 #if defined(__WATCOMC__)
-#   include <stdio.h> // snprintf is here!
-#   define flushout(stream)
-#else
-#   define flushout(stream) std::fflush(stream)
+#include <stdio.h> // snprintf is here!
 #endif
+#define FLUSHOUT_IMPL
+#include "flushout.h"
 
 #include "midi_seq.h"
 #include <signal.h>
@@ -314,29 +313,31 @@ static inline void keyWait()
 static double s_extra_delay = 0.0;
 static DosTaskman *s_taskman = NULL;
 static bool s_pause = false;
+static volatile unsigned long s_timerPrev = 0;
 
 static void s_midiLoop(DosTaskman::DosTask *task)
 {
-    if(!is_playing || s_pause)
+    if(!is_playing || s_pause || g_flushing)
         return;
 
     MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
     const double mindelay = 1.0 / task->getFreq();
-    volatile unsigned long begin = BIOStimer;
-    volatile unsigned long end;
+    volatile unsigned long timerCur;
     double tickDelay;
 
     tickDelay = player->tick(mindelay + s_extra_delay, mindelay / 10.0);
 
-    end = BIOStimer;
+    timerCur = BIOStimer;
     s_extra_delay = 0.0;
 
-    if(s_taskman && end > begin)
+    if(s_taskman && timerCur > s_timerPrev)
     {
-        double delay = (end - begin) / (double)s_taskman->getCurClockRate();
+        double delay = (timerCur - s_timerPrev) / (double)s_taskman->getCurClockRate();
         if(delay > mindelay)
             s_extra_delay = (mindelay - delay);
     }
+
+    s_timerPrev = timerCur;
 
     if(player->atEnd() && tickDelay <= 0)
         is_playing = false;
@@ -361,6 +362,8 @@ static void runDOSLoop(MIDI_Seq *myDevice)
 
     setCursorVisibility(false);
 
+    s_timerPrev = BIOStimer;
+
     while(is_playing)
     {
 #   ifndef DEBUG_TRACE_ALL_EVENTS
@@ -384,6 +387,7 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 myDevice->prevSong();
                 s_timeCounter.clearLineR();
                 fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
+                flushout(stdout);
                 s_pause = false;
                 break;
             }
@@ -396,6 +400,7 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 myDevice->nextSong();
                 s_timeCounter.clearLineR();
                 fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
+                flushout(stdout);
                 s_pause = false;
                 break;
             }
@@ -405,6 +410,8 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 s_pause = true;
                 myDevice->panic();
                 myDevice->rewind();
+                fprintf(stdout, " - Rewind song to begin...\n");
+                flushout(stdout);
                 s_pause = false;
                 break;
             }
@@ -436,7 +443,7 @@ static int runWaveOutLoopLoop(MIDI_Seq &player, const char *musPath, const char 
     if(!wave)
     {
         fprintf(stderr, "ERROR: Couldn't open wave writer for output %s\n", wavPath);
-        fflush(stdout);
+        flushout(stdout);
         return 1;
     }
 
@@ -484,14 +491,14 @@ struct Args
     bool printArgFail(const char *arg)
     {
         fprintf(stderr, "ERROR: Argument %s requires an option!\n", arg);
-        fflush(stderr);
+        flushout(stderr);
         return false;
     }
 
     bool printArgNoSup(const char *arg)
     {
         fprintf(stderr, "ERROR: Argument %s is not supported on this platform\n", arg);
-        fflush(stderr);
+        flushout(stderr);
         return false;
     }
 
@@ -742,7 +749,7 @@ int main(int argc, char **argv)
            "(c) 2025 Vitaliy Novichkov, licensed under GNU GPLv2+\n"
            "Soure code: https://github.com/Wohlstand/dmx-midi-player/\n"
            "==============================================================\n");
-    fflush(stdout);
+    flushout(stdout);
 
     if(argc < 2 || !args.parseArgs(argc, argv))
     {
@@ -797,7 +804,7 @@ int main(int argc, char **argv)
         }
 #else
         std::printf("%s", help_text);
-        fflush(stdout);
+        flushout(stdout);
 #endif
         return 1;
     }
@@ -817,7 +824,7 @@ int main(int argc, char **argv)
     if(SDL_Init(SDL_INIT_AUDIO) < 0)
     {
         printf("Failed to initialize the SDL2! %s\n", SDL_GetError());
-        fflush(stdout);
+        flushout(stdout);
         return 1;
     }
 #endif
@@ -846,13 +853,13 @@ int main(int argc, char **argv)
         if(SDL_OpenAudio(&spec, &obtained) < 0)
         {
             fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-            fflush(stdout);
+            flushout(stdout);
             return 1;
         }
     }
 
     printf(" - Gain factor: %g\n", args.gain);
-    fflush(stdout);
+    flushout(stdout);
 
     player.setGain(args.gain);
 #else
@@ -867,7 +874,7 @@ int main(int argc, char **argv)
 #endif
     {
         printf("Failed to initialize the synth!\n");
-        fflush(stdout);
+        flushout(stdout);
         return 2;
     }
 
@@ -875,7 +882,7 @@ int main(int argc, char **argv)
     if(!player.initStream(obtained.format, obtained.freq, obtained.channels))
     {
         printf("Failed to initialize the stream! %s\n", SDL_GetError());
-        fflush(stdout);
+        flushout(stdout);
         return 2;
     }
 #endif
@@ -883,7 +890,7 @@ int main(int argc, char **argv)
     if(!player.openMusic(args.song))
     {
         printf("Can't open music %s\n", args.song);
-        fflush(stdout);
+        flushout(stdout);
         return 1;
     }
 
@@ -977,7 +984,7 @@ int main(int argc, char **argv)
 #endif
 
     printf("\n");
-    fflush(stdout);
+    flushout(stdout);
 
     return ret;
 }

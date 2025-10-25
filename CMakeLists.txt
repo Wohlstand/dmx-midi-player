@@ -40,6 +40,7 @@ add_executable(dmxplay
     src/main.cpp
 
     src/interface.h
+    src/flushout.h
 
     ${DOS_SOURCES}
     ${AUDIO_OUT_SRC}

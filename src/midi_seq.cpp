@@ -17,12 +17,7 @@
 #endif
 
 #include <cstdarg>
-#if defined(__WATCOMC__)
-#include <stdio.h> // snprintf is here!
-#define flushout(stream)
-#else
-#define flushout(stream) std::fflush(stream)
-#endif
+#include "flushout.h"
 // Rename class to avoid ABI collisions
 #define BW_MidiSequencer AdlMidiSequencer
 #define BWMIDI_ENABLE_OPL_MUSIC_SUPPORT
