@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <vector>
 
 #define VERSION "1.0.0"
 
@@ -303,12 +304,20 @@ static struct TimeCounter
 
 #ifdef HW_DOS_BUILD
 
+static inline void keyWait()
+{
+    std::printf("<press any key to continue...>");
+    getch();
+    std::printf("\r                              \r");
+}
+
 static double s_extra_delay = 0.0;
 static DosTaskman *s_taskman = NULL;
+static bool s_pause = false;
 
 static void s_midiLoop(DosTaskman::DosTask *task)
 {
-    if(!is_playing)
+    if(!is_playing || s_pause)
         return;
 
     MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
@@ -361,8 +370,45 @@ static void runDOSLoop(MIDI_Seq *myDevice)
         if(kbhit())
         {   // Quit on ESC key!
             int c = getch();
-            if(c == 27)
+            switch(c)
+            {
+            case 27:
                 is_playing = false;
+                break;
+            case 'p':
+            case 'P':
+            {
+                if(myDevice->songsNum() <= 1)
+                    break; // Nothing to do
+                s_pause = true;
+                myDevice->prevSong();
+                s_timeCounter.clearLineR();
+                fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
+                s_pause = false;
+                break;
+            }
+            case 'n':
+            case 'N':
+            {
+                if(myDevice->songsNum() <= 1)
+                    break; // Nothing to do
+                s_pause = true;
+                myDevice->nextSong();
+                s_timeCounter.clearLineR();
+                fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
+                s_pause = false;
+                break;
+            }
+            case 'r':
+            case 'R':
+            {
+                s_pause = true;
+                myDevice->panic();
+                myDevice->rewind();
+                s_pause = false;
+                break;
+            }
+            }
         }
 
         s_timeCounter.waitDosTimerTick();
@@ -426,6 +472,10 @@ struct Args
 
     bool loop = false;
 
+    size_t              soloTrack = ~(size_t)0;
+    int                 songNumLoad = -1;
+    std::vector<size_t> onlyTracks;
+
 #ifdef HW_DOS_BUILD
     uint16_t hw_addr = 0x388;
     unsigned clock_freq = 209;
@@ -487,16 +537,48 @@ struct Args
 
             if(!std::strcmp(cur, "-bank"))
             {
-                --argc;
-                ++argv;
-                if(argc == 0)
-                    return printArgFail("-bank");
-                bank = *argv;
                 a.shift();
                 if(a.end())
                     return printArgFail(cur);
                 bank = a.arg();
             }
+            else if(!std::strcmp(cur, "-song"))
+            {
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
+                songNumLoad = std::strtol(a.arg(), NULL, 10);
+            }
+            else if(!std::strcmp(cur, "-solo"))
+            {
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
+                soloTrack = std::strtoul(a.arg(), NULL, 10);
+            }
+            else if(!std::strcmp(cur, "-only"))
+            {
+                a.shift();
+                if(a.end())
+                    return printArgFail(cur);
+
+                const char *strp = a.arg();
+                unsigned long value;
+                unsigned size;
+                bool err = std::sscanf(strp, "%lu%n", &value, &size) != 1;
+
+                while(!err && *(strp += size))
+                {
+                    onlyTracks.push_back(value);
+                    err = std::sscanf(strp, ",%lu%n", &value, &size) != 1;
+                }
+                if(err)
+                {
+                    fprintf(stderr, "Invalid argument to -only!\n");
+                    return 1;
+                }
+
+                onlyTracks.push_back(value);
             }
             else if(!std::strcmp(cur, "-loop"))
             {
@@ -664,34 +746,59 @@ int main(int argc, char **argv)
 
     if(argc < 2 || !args.parseArgs(argc, argv))
     {
-        printf("\n"
-               "USAGE:\n\n"
-               "  dmxplay [options] <filename>\n"
-               "\n"
-               "  <filename>       - Path to music file to play. Required.\n"
-               "\n"
-               "Supported options:\n"
-               "  -bank <file.op2> - Path to custom OP2 bank file.\n"
-               "  -loop            - Enable looping of the opened music file.\n"
+        const char *help_text =
+            "\n"
+            "USAGE:\n\n"
+            "  dmxplay [options] <filename>\n"
+            "\n"
+            "  <filename>       - Path to music file to play. Required.\n"
+            "\n"
+            "Supported options:\n"
+            "  -bank <file.op2> - Path to custom OP2 bank file.\n"
+            "  -loop            - Enable looping of the opened music file.\n"
 #ifdef HW_DOS_BUILD
-               "  -addr <0xVAL>    - [DOS ONLY] Set the hardware OPL2/OPL3 address.\n"
-               "                     Default is 0x388.\n"
+            "  -addr <0xVAL>    - [DOS ONLY] Set the hardware OPL2/OPL3 address.\n"
+            "                     Default is 0x388.\n"
 #endif
 #ifndef HW_DOS_BUILD
-               "  -gain <value>    - [Non-DOS ONLY] Set the gaining factor (default 2.0).\n"
-               "  -wave <path.wav> - [Non-DOS ONLY] Record output into WAV file of spcified path.\n"
-               "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
-               "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
-               "                     nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
-               "                     mame-opl2, lle-opl2, lle-opl3\n"
+            "  -gain <value>    - [Non-DOS ONLY] Set the gaining factor (default 2.0).\n"
+            "  -wave <path.wav> - [Non-DOS ONLY] Record output into WAV file of spcified path.\n"
+            "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
+            "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
+            "                     nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
+            "                     mame-opl2, lle-opl2, lle-opl3\n"
 #endif
-               "  -opl3            - Enable OPL3 mode (by default the OPL2 mode).\n"
-               "  -doom1           - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
-               "  -doom2           - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
-               "  -setup \"string\"  - Set a quoted space-separated setup string for synth\n"
-               "                     in same as DMXOPTION environment variable.\n"
-               "\n");
+            "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"
+            "  -solo <TRACK>    - Set MIDI track number to play solo.\n"
+            "  -only <T1,..Tn>  - Set a comma-separated list of MIDI tracks to play solo.\n"
+            "  -opl3            - Enable OPL3 mode (by default the OPL2 mode).\n"
+            "  -doom1           - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
+            "  -doom2           - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
+            "  -setup \"string\"  - Set a quoted space-separated setup string for synth\n"
+            "                     in same as DMXOPTION environment variable.\n"
+            "\n";
+
+#ifdef HW_DOS_BUILD
+        int lines = 8; // Lines of banner
+        const char *cur = help_text;
+
+        for(; *cur != '\0'; ++cur)
+        {
+            char c = *cur;
+            std::putc(c, stdout);
+            if(c == '\n')
+                lines++;
+
+            if(lines >= 24)
+            {
+                keyWait();
+                lines = 0;
+            }
+        }
+#else
+        std::printf("%s", help_text);
         fflush(stdout);
+#endif
         return 1;
     }
 
@@ -784,6 +891,38 @@ int main(int argc, char **argv)
 
     std::fprintf(stdout, " - %s in use\n", player.getEmuName());
 
+    if(args.songNumLoad >= 0)
+        player.selectSong(args.songNumLoad);
+
+    int songsCount = player.songsNum();
+    if(args.songNumLoad >= 0)
+        std::fprintf(stdout, " - Attempt to load song number: %d / %d\n", args.songNumLoad + 1, songsCount);
+    else if(songsCount > 0)
+        std::fprintf(stdout, " - File contains %d song(s)\n", songsCount);
+
+    if(args.soloTrack != ~static_cast<size_t>(0))
+    {
+        std::fprintf(stdout, " - Solo track: %lu\n", static_cast<unsigned long>(args.soloTrack));
+        player.setSoloTrack(args.soloTrack);
+    }
+
+    if(!args.onlyTracks.empty())
+    {
+        size_t count = player.getTracksCount();
+        for(size_t track = 0; track < count; ++track)
+            player.setTrackEnabled(track, false);
+
+        std::fprintf(stdout, " - Only tracks:");
+        for(size_t i = 0, n = args.onlyTracks.size(); i < n; ++i)
+        {
+            size_t track = args.onlyTracks[i];
+            player.setTrackEnabled(track, true);
+            std::fprintf(stdout, " %lu", static_cast<unsigned long>(track));
+        }
+
+        std::fprintf(stdout, "\n");
+    }
+
     std::fprintf(stdout, " - Loop is turned %s\n", args.loop ? "ON" : "OFF");
 
     s_timeCounter.setLoop(player.loopStart(), player.loopEnd());
@@ -804,7 +943,10 @@ int main(int argc, char **argv)
     if(!args.wave)
         printf("Playing... Hit Ctrl+C to quit!\n");
 #else
-    printf("Playing... Hit Ctrl+C or ESC to quit!\n");
+    printf("Playing... Hit Ctrl+C or ESC to quit!\n"
+           "  R - Rewind song to begin\n");
+    if(songsCount > 1)
+        printf("  N - Next song, P - Previous\n");
 #endif
 
 #ifndef HW_DOS_BUILD

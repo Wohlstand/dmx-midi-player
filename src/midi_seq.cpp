@@ -251,6 +251,69 @@ void MIDI_Seq::setLoop(bool enable)
     m_sequencer->setLoopEnabled(enable);
 }
 
+void MIDI_Seq::setSoloTrack(size_t solo)
+{
+    m_sequencer->setSoloTrack(solo);
+}
+
+size_t MIDI_Seq::getTracksCount()
+{
+    return m_sequencer->getTrackCount();
+}
+
+void MIDI_Seq::setTrackEnabled(size_t track, bool enabled)
+{
+    m_sequencer->setTrackEnabled(track, enabled);
+}
+
+int MIDI_Seq::songsNum()
+{
+    return m_sequencer->getSongsCount();
+}
+
+int MIDI_Seq::curSong()
+{
+    return m_cur_song;
+}
+
+void MIDI_Seq::selectSong(int song)
+{
+    if(m_sequencer->getSongsCount() <= 1)
+        return;
+
+    m_sequencer->setSongNum(song);
+    m_cur_song = song;
+}
+
+void MIDI_Seq::nextSong()
+{
+    if(m_sequencer->getSongsCount() <= 1)
+        return;
+
+    ++m_cur_song;
+    if(m_cur_song >= m_sequencer->getSongsCount())
+        m_cur_song = 0;
+
+    m_sequencer->setSongNum(m_cur_song);
+}
+
+void MIDI_Seq::prevSong()
+{
+    if(m_sequencer->getSongsCount() <= 1)
+        return;
+
+    --m_cur_song;
+    if(m_cur_song < 0)
+        m_cur_song = m_sequencer->getSongsCount() - 1;
+
+    m_sequencer->setSongNum(m_cur_song);
+}
+
+void MIDI_Seq::rewind()
+{
+    m_sequencer->rewind();
+}
+
 double MIDI_Seq::tick(double s, double granularity)
 {
     return m_sequencer->Tick(s, granularity);

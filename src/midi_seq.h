@@ -34,6 +34,7 @@ class MIDI_Seq
     midisynth *m_synth = nullptr;
     BW_MidiRtInterface *m_interface = nullptr;
     MidiSequencer *m_sequencer = nullptr;
+    int m_cur_song = 0;
 #ifndef HW_DOS_BUILD
     SDL_AudioStream *m_stream = nullptr;
     unsigned char m_buffer[4096];
@@ -74,6 +75,18 @@ public:
     const char *getEmuName();
 
     void setLoop(bool enable);
+
+    void setSoloTrack(size_t solo);
+    size_t getTracksCount();
+    void setTrackEnabled(size_t track, bool enabled);
+
+    int songsNum();
+    int curSong();
+    void selectSong(int song);
+    void nextSong();
+    void prevSong();
+
+    void rewind();
 
     double tick(double s, double granularity);
 
