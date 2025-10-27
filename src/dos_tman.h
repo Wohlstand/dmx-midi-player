@@ -22,6 +22,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#pragma once
 #ifndef DOS_TMAN_H
 #define DOS_TMAN_H
 
@@ -36,6 +37,7 @@ class DosTaskman
     static DosTaskman *self;
     volatile long m_timerRate;
     volatile long m_counter;
+    volatile bool m_suspend;
 
     static void process();
 
@@ -61,6 +63,8 @@ public:
         friend class DosTaskman;
         inline void *getData() const { return data; }
         inline long getFreq() const { return freq; }
+        inline long getCount() const { return count; }
+        inline long getRate() const { return rate_real; }
 
     private:
         void (*callback)(struct DosTask*);
@@ -80,6 +84,9 @@ public:
 
     static unsigned long getCurTicks();
     unsigned long getCurClockRate() const;
+
+    static void suspend();
+    static void resume();
 
     /*!
      * \brief Add a callback function as a task

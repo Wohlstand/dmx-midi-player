@@ -32,7 +32,6 @@
 #   include <conio.h>   // getch/kbhit
 #   include <dos.h>     // delay
 #   include "dos_tman.h"
-#define BIOStimer DosTaskman::getCurTicks()
 typedef uint32_t Uint32;
 typedef uint8_t Uint8;
 #endif // HW_DOS_BUILD
@@ -40,7 +39,6 @@ typedef uint8_t Uint8;
 #if defined(__WATCOMC__)
 #include <stdio.h> // snprintf is here!
 #endif
-#define FLUSHOUT_IMPL
 #include "flushout.h"
 
 #include "midi_seq.h"
@@ -226,8 +224,14 @@ static struct TimeCounter
 #ifdef HW_DOS_BUILD
     void waitDosTimerTick()
     {
-        volatile unsigned long timer = BIOStimer;
-        while(timer == BIOStimer);
+        volatile unsigned long timer = DosTaskman::getCurTicks();
+        while(timer == DosTaskman::getCurTicks());
+    }
+
+    void delay(int ticks)
+    {
+        volatile unsigned long timer = DosTaskman::getCurTicks() + ticks;
+        while(timer >= DosTaskman::getCurTicks());
     }
 #endif
 
@@ -313,33 +317,24 @@ static inline void keyWait()
 static double s_extra_delay = 0.0;
 static DosTaskman *s_taskman = NULL;
 static bool s_pause = false;
-static volatile unsigned long s_timerPrev = 0;
 
 static void s_midiLoop(DosTaskman::DosTask *task)
 {
-    if(!is_playing || s_pause || g_flushing)
+    if(!is_playing || s_pause)
         return;
 
     MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
     const double mindelay = 1.0 / task->getFreq();
-    volatile unsigned long timerCur;
     double tickDelay;
+
+    s_extra_delay = 0;
+
+    if(task->getCount() >= task->getRate())
+        s_extra_delay = mindelay;
 
     tickDelay = player->tick(mindelay + s_extra_delay, mindelay / 10.0);
 
-    timerCur = BIOStimer;
-    s_extra_delay = 0.0;
-
-    if(s_taskman && timerCur > s_timerPrev)
-    {
-        double delay = (timerCur - s_timerPrev) / (double)s_taskman->getCurClockRate();
-        if(delay > mindelay)
-            s_extra_delay = (mindelay - delay);
-    }
-
-    s_timerPrev = timerCur;
-
-    if(player->atEnd() && tickDelay <= 0)
+    if(player->atEnd() || tickDelay <= 0)
         is_playing = false;
 }
 
@@ -361,8 +356,6 @@ static void runDOSLoop(MIDI_Seq *myDevice)
     s_timeCounter.clearLineR();
 
     setCursorVisibility(false);
-
-    s_timerPrev = BIOStimer;
 
     while(is_playing)
     {
@@ -410,6 +403,7 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 s_pause = true;
                 myDevice->panic();
                 myDevice->rewind();
+                s_timeCounter.clearLineR();
                 fprintf(stdout, " - Rewind song to begin...\n");
                 flushout(stdout);
                 s_pause = false;
