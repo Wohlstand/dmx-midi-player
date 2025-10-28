@@ -54,7 +54,6 @@ add_executable(dmxplay
     # Sequencer
     src/midi_seq.h
     src/midi_seq.cpp
-    src/seq/cvt_mus2mid.hpp
     src/seq/cvt_xmi2mid.hpp
     src/seq/file_reader.hpp
     src/seq/fraction.hpp
