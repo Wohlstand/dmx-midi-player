@@ -31,6 +31,7 @@
 #else
 #   include <conio.h>   // getch/kbhit
 #   include <dos.h>     // delay
+#   include <sys/nearptr.h>
 #   include "dos_tman.h"
 typedef uint32_t Uint32;
 typedef uint8_t Uint8;
@@ -267,9 +268,9 @@ static struct TimeCounter
 #endif
                 // std::fprintf(stdout, "                                                        \r");
 #ifdef HAS_S_GETTIME
-                len = std::snprintf(linebuff, 79, "Time position: %s / %s [Real time: %s]\r", posHMS, totalHMS, realHMS);
+                len = snprintf(linebuff, 79, "Time position: %s / %s [Real time: %s]\r", posHMS, totalHMS, realHMS);
 #else
-                len = std::snprintf(linebuff, 79, "Time position: %s / %s", posHMS, totalHMS);
+                len = snprintf(linebuff, 79, "Time position: %s / %s", posHMS, totalHMS);
 #endif
                 if(len > 0)
                     memset(linebuff + len, ' ',  79 - len);
@@ -731,6 +732,8 @@ int main(int argc, char **argv)
 #ifndef HW_DOS_BUILD
     static SDL_AudioSpec spec, obtained;
 #else
+    __djgpp_nearptr_enable();
+
     DosTaskman taskMan;
 #endif
     MIDI_Seq player;
