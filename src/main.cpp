@@ -246,7 +246,7 @@ static struct TimeCounter
     void clearLineR()
     {
         initLineBuff();
-        std::fprintf(stdout, "%s", linebuff);
+        s_fprintf(stdout, "%s", linebuff);
         flushout(stdout);
     }
 
@@ -266,7 +266,7 @@ static struct TimeCounter
 #ifdef HAS_S_GETTIME
                 secondsToHMSM(s_getTime() - realTimeStart, realHMS, 25);
 #endif
-                // std::fprintf(stdout, "                                                        \r");
+                // s_fprintf(stdout, "                                                        \r");
 #ifdef HAS_S_GETTIME
                 len = snprintf(linebuff, 79, "Time position: %s / %s [Real time: %s]\r", posHMS, totalHMS, realHMS);
 #else
@@ -275,7 +275,7 @@ static struct TimeCounter
                 if(len > 0)
                     memset(linebuff + len, ' ',  79 - len);
                 linebuff[79] = '\r';
-                std::fprintf(stdout, "%s", linebuff);
+                s_fprintf(stdout, "%s", linebuff);
                 flushout(stdout);
                 milliseconds_prev = milliseconds;
             }
@@ -290,8 +290,8 @@ static struct TimeCounter
 
         if(complete_prev != complete)
         {
-            std::fprintf(stdout, "                                               \r");
-            std::fprintf(stdout, "Recording WAV... [%d%% completed]\r", complete);
+            s_fprintf(stdout, "                                               \r");
+            s_fprintf(stdout, "Recording WAV... [%d%% completed]\r", complete);
             flushout(stdout);
             complete_prev = complete;
         }
@@ -300,7 +300,7 @@ static struct TimeCounter
     void clearLine()
     {
         initLineBuff();
-        std::fprintf(stdout, "%s\n\n", linebuff);
+        s_fprintf(stdout, "%s\n\n", linebuff);
         flushout(stdout);
     }
 
@@ -310,9 +310,9 @@ static struct TimeCounter
 
 static inline void keyWait()
 {
-    std::printf("<press any key to continue...>");
+    s_fprintf(stdout, "<press any key to continue...>");
     getch();
-    std::printf("\r                              \r");
+    s_fprintf(stdout, "\r                              \r");
 }
 
 static double s_extra_delay = 0.0;
@@ -328,12 +328,16 @@ static void s_midiLoop(DosTaskman::DosTask *task)
     const double mindelay = 1.0 / task->getFreq();
     double tickDelay;
 
-    s_extra_delay = 0;
-
     if(task->getCount() >= task->getRate())
-        s_extra_delay = mindelay;
+    {
+        s_extra_delay += mindelay;
+        return; // Skip this iteration
+    }
 
     tickDelay = player->tick(mindelay + s_extra_delay, mindelay / 10.0);
+
+    if(s_extra_delay > 0)
+        s_extra_delay = 0;
 
     if(player->atEnd() || tickDelay <= 0)
         is_playing = false;
@@ -380,7 +384,7 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 s_pause = true;
                 myDevice->prevSong();
                 s_timeCounter.clearLineR();
-                fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
+                s_fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
                 flushout(stdout);
                 s_pause = false;
                 break;
@@ -393,7 +397,7 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 s_pause = true;
                 myDevice->nextSong();
                 s_timeCounter.clearLineR();
-                fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
+                s_fprintf(stdout, " - Selecting song %d / %d\n", myDevice->curSong() + 1, myDevice->songsNum());
                 flushout(stdout);
                 s_pause = false;
                 break;
@@ -405,7 +409,7 @@ static void runDOSLoop(MIDI_Seq *myDevice)
                 myDevice->panic();
                 myDevice->rewind();
                 s_timeCounter.clearLineR();
-                fprintf(stdout, " - Rewind song to begin...\n");
+                s_fprintf(stdout, " - Rewind song to begin...\n");
                 flushout(stdout);
                 s_pause = false;
                 break;
@@ -430,14 +434,14 @@ static int runWaveOutLoopLoop(MIDI_Seq &player, const char *musPath, const char 
     uint8_t buffer[buffer_size];
     size_t got = 0;
     void *wave = NULL;
-    std::fprintf(stdout, " - Recording %s to WAV file %s...\n", musPath, wavPath);
-    std::fprintf(stdout, "\n==========================================\n");
+    s_fprintf(stdout, " - Recording %s to WAV file %s...\n", musPath, wavPath);
+    s_fprintf(stdout, "\n==========================================\n");
     flushout(stdout);
 
     wave = init_wave_writer(spec, wavPath);
     if(!wave)
     {
-        fprintf(stderr, "ERROR: Couldn't open wave writer for output %s\n", wavPath);
+        s_fprintf(stderr, "ERROR: Couldn't open wave writer for output %s\n", wavPath);
         flushout(stdout);
         return 1;
     }
@@ -485,14 +489,14 @@ struct Args
 
     bool printArgFail(const char *arg)
     {
-        fprintf(stderr, "ERROR: Argument %s requires an option!\n", arg);
+        s_fprintf(stderr, "ERROR: Argument %s requires an option!\n", arg);
         flushout(stderr);
         return false;
     }
 
     bool printArgNoSup(const char *arg)
     {
-        fprintf(stderr, "ERROR: Argument %s is not supported on this platform\n", arg);
+        s_fprintf(stderr, "ERROR: Argument %s is not supported on this platform\n", arg);
         flushout(stderr);
         return false;
     }
@@ -576,7 +580,8 @@ struct Args
                 }
                 if(err)
                 {
-                    fprintf(stderr, "Invalid argument to -only!\n");
+                    s_fprintf(stderr, "Invalid argument to -only!\n");
+                    flushout(stderr);
                     return 1;
                 }
 
@@ -622,7 +627,8 @@ struct Args
                 unsigned timerFreq = std::strtoul(a.arg(), NULL, 0);
                 if(timerFreq == 0)
                 {
-                    printf("The option -freq requires a non-zero integer argument!\n");
+                    s_fprintf(stderr, "The option -freq requires a non-zero integer argument!\n");
+                    flushout(stderr);
                     return false;
                 }
 
@@ -637,7 +643,8 @@ struct Args
                 hw_addr = std::strtoul(argv[3], NULL, 0);
                 if(hw_addr == 0)
                 {
-                    printf("The option --addr requires a non-zero integer argument!\n");
+                    s_fprintf(stderr, "The option --addr requires a non-zero integer argument!\n");
+                    flushout(stderr);
                     return false;
                 }
 
@@ -700,7 +707,8 @@ struct Args
                     emu_type = EMU_OPL3_LLE;
                 else
                 {
-                    printf("ERROR: Invalid emulator name: %s\n", a.arg());
+                    s_fprintf(stderr, "ERROR: Invalid emulator name: %s\n", a.arg());
+                    flushout(stderr);
                     return false;
                 }
             }
@@ -739,13 +747,14 @@ int main(int argc, char **argv)
     MIDI_Seq player;
     Args args;
 
-    printf("==============================================================\n"
-           "DMX-like MIDI player by Vitaliy Novichkov, version " VERSION "\n"
-           "Based on Nuke.Ykt's WinMM driver\n"
-           "==============================================================\n"
-           "(c) 2025 Vitaliy Novichkov, licensed under GNU GPLv2+\n"
-           "Soure code: https://github.com/Wohlstand/dmx-midi-player/\n"
-           "==============================================================\n");
+    s_fprintf(stdout,
+            "==============================================================\n"
+            "DMX-like MIDI player by Vitaliy Novichkov, version " VERSION "\n"
+            "Based on Nuke.Ykt's WinMM driver\n"
+            "==============================================================\n"
+            "(c) 2025 Vitaliy Novichkov, licensed under GNU GPLv2+\n"
+            "Soure code: https://github.com/Wohlstand/dmx-midi-player/\n"
+            "==============================================================\n");
     flushout(stdout);
 
     if(argc < 2 || !args.parseArgs(argc, argv))
@@ -800,7 +809,7 @@ int main(int argc, char **argv)
             }
         }
 #else
-        std::printf("%s", help_text);
+        s_fprintf(stdout, "%s", help_text);
         flushout(stdout);
 #endif
         return 1;
@@ -810,7 +819,7 @@ int main(int argc, char **argv)
     player.setSetupString(args.setup);
     player.setLoop(args.loop);
 
-    std::fprintf(stdout, " - Use bank [%s]\n", args.bank);
+    s_fprintf(stdout, " - Use bank [%s]\n", args.bank);
     flushout(stdout);
 
     signal(SIGINT, &sig_playing);
@@ -820,7 +829,7 @@ int main(int argc, char **argv)
     /* Initialize SDL.*/
     if(SDL_Init(SDL_INIT_AUDIO) < 0)
     {
-        printf("Failed to initialize the SDL2! %s\n", SDL_GetError());
+        s_fprintf(stdout, "Failed to initialize the SDL2! %s\n", SDL_GetError());
         flushout(stdout);
         return 1;
     }
@@ -849,19 +858,19 @@ int main(int argc, char **argv)
         /* Open the audio device if not writing WAV file */
         if(SDL_OpenAudio(&spec, &obtained) < 0)
         {
-            fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-            flushout(stdout);
+            s_fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+            flushout(stderr);
             return 1;
         }
     }
 
-    printf(" - Gain factor: %g\n", args.gain);
+    s_fprintf(stdout, " - Gain factor: %g\n", args.gain);
     flushout(stdout);
 
     player.setGain(args.gain);
 #else
     player.set_hw_addr(args.hw_addr);
-    std::fprintf(stdout, " - [DOS] Running clock with %u hz\n", args.clock_freq);
+    s_fprintf(stdout, " - [DOS] Running clock with %u hz\n", args.clock_freq);
 #endif
 
 #ifdef HW_DOS_BUILD
@@ -870,7 +879,7 @@ int main(int argc, char **argv)
     if(!player.initSynth(args.emu_type, obtained.freq))
 #endif
     {
-        printf("Failed to initialize the synth!\n");
+        s_fprintf(stdout, "Failed to initialize the synth!\n");
         flushout(stdout);
         return 2;
     }
@@ -878,7 +887,7 @@ int main(int argc, char **argv)
 #ifndef HW_DOS_BUILD
     if(!player.initStream(obtained.format, obtained.freq, obtained.channels))
     {
-        printf("Failed to initialize the stream! %s\n", SDL_GetError());
+        s_fprintf(stdout, "Failed to initialize the stream! %s\n", SDL_GetError());
         flushout(stdout);
         return 2;
     }
@@ -886,27 +895,27 @@ int main(int argc, char **argv)
 
     if(!player.openMusic(args.song))
     {
-        printf("Can't open music %s\n", args.song);
+        s_fprintf(stdout, "Can't open music %s\n", args.song);
         flushout(stdout);
         return 1;
     }
 
     s_timeCounter.setTotal(player.duration());
 
-    std::fprintf(stdout, " - %s in use\n", player.getEmuName());
+    s_fprintf(stdout, " - %s in use\n", player.getEmuName());
 
     if(args.songNumLoad >= 0)
         player.selectSong(args.songNumLoad);
 
     int songsCount = player.songsNum();
     if(args.songNumLoad >= 0)
-        std::fprintf(stdout, " - Attempt to load song number: %d / %d\n", args.songNumLoad + 1, songsCount);
+        s_fprintf(stdout, " - Attempt to load song number: %d / %d\n", args.songNumLoad + 1, songsCount);
     else if(songsCount > 0)
-        std::fprintf(stdout, " - File contains %d song(s)\n", songsCount);
+        s_fprintf(stdout, " - File contains %d song(s)\n", songsCount);
 
     if(args.soloTrack != ~static_cast<size_t>(0))
     {
-        std::fprintf(stdout, " - Solo track: %lu\n", static_cast<unsigned long>(args.soloTrack));
+        s_fprintf(stdout, " - Solo track: %lu\n", static_cast<unsigned long>(args.soloTrack));
         player.setSoloTrack(args.soloTrack);
     }
 
@@ -916,23 +925,23 @@ int main(int argc, char **argv)
         for(size_t track = 0; track < count; ++track)
             player.setTrackEnabled(track, false);
 
-        std::fprintf(stdout, " - Only tracks:");
+        s_fprintf(stdout, " - Only tracks:");
         for(size_t i = 0, n = args.onlyTracks.size(); i < n; ++i)
         {
             size_t track = args.onlyTracks[i];
             player.setTrackEnabled(track, true);
-            std::fprintf(stdout, " %lu", static_cast<unsigned long>(track));
+            s_fprintf(stdout, " %lu", static_cast<unsigned long>(track));
         }
 
-        std::fprintf(stdout, "\n");
+        s_fprintf(stdout, "\n");
     }
 
-    std::fprintf(stdout, " - Loop is turned %s\n", args.loop ? "ON" : "OFF");
+    s_fprintf(stdout, " - Loop is turned %s\n", args.loop ? "ON" : "OFF");
 
     s_timeCounter.setLoop(player.loopStart(), player.loopEnd());
     if(s_timeCounter.hasLoop)
-        std::fprintf(stdout, " - Has loop points: %s ... %s\n", s_timeCounter.loopStartHMS, s_timeCounter.loopEndHMS);
-    std::fprintf(stdout, "\n==========================================\n");
+        s_fprintf(stdout, " - Has loop points: %s ... %s\n", s_timeCounter.loopStartHMS, s_timeCounter.loopEndHMS);
+    s_fprintf(stdout, "\n==========================================\n");
     flushout(stdout);
 
     is_playing = 1;
@@ -945,12 +954,12 @@ int main(int argc, char **argv)
 
 #ifndef HW_DOS_BUILD
     if(!args.wave)
-        printf("Playing... Hit Ctrl+C to quit!\n");
+        s_fprintf(stdout, "Playing... Hit Ctrl+C to quit!\n");
 #else
-    printf("Playing... Hit Ctrl+C or ESC to quit!\n"
-           "  R - Rewind song to begin\n");
+    s_fprintf(stdout, "Playing... Hit Ctrl+C or ESC to quit!\n"
+                      "  R - Rewind song to begin\n");
     if(songsCount > 1)
-        printf("  N - Next song, P - Previous\n");
+        s_fprintf(stdout, "  N - Next song, P - Previous\n");
 #endif
 
 #ifndef HW_DOS_BUILD
@@ -980,7 +989,7 @@ int main(int argc, char **argv)
     // s_timeCounter.restoreDosTimer();
 #endif
 
-    printf("\n");
+    s_fprintf(stdout, "\n");
     flushout(stdout);
 
     return ret;

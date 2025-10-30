@@ -149,7 +149,7 @@ bool DoomOPL::LoadInstrumentTable(void)
 
     if(!file)
     {
-        std::fprintf(stderr, " - SYNTH ERROR: Failed to open bank %s\n", m_bankPath);
+        s_fprintf(stderr, " - SYNTH ERROR: Failed to open bank %s\n", m_bankPath);
         flushout(stderr);
         return false;
     }
@@ -166,7 +166,7 @@ bool DoomOPL::LoadInstrumentTable(void)
 
     if(size < (sizeof(genmidi_instr_t) * (GENMIDI_NUM_INSTRS + GENMIDI_NUM_PERCUSSION)) + strlen(GENMIDI_HEADER))
     {
-        std::fprintf(stderr, " - SYNTH ERROR: Bank file %s is smaller than needed\n", m_bankPath);
+        s_fprintf(stderr, " - SYNTH ERROR: Bank file %s is smaller than needed\n", m_bankPath);
         flushout(stderr);
         fclose(file);
         return false;
@@ -176,7 +176,7 @@ bool DoomOPL::LoadInstrumentTable(void)
 
     if(!m_lump)
     {
-        std::fprintf(stderr, " - SYNTH ERROR: Out of memory\n");
+        s_fprintf(stderr, " - SYNTH ERROR: Out of memory\n");
         flushout(stderr);
         fclose(file);
         return false;
@@ -187,14 +187,14 @@ bool DoomOPL::LoadInstrumentTable(void)
 
     if(ret != size)
     {
-        std::fprintf(stderr, " - SYNTH ERROR: Failed to load bank %s\n", m_bankPath);
+        s_fprintf(stderr, " - SYNTH ERROR: Failed to load bank %s\n", m_bankPath);
         flushout(stderr);
         return false;
     }
 
     if(memcmp(m_lump, GENMIDI_HEADER, 8) != 0)
     {
-        std::fprintf(stderr, " - SYNTH ERROR: Bank file %s contains invalid signature\n", m_bankPath);
+        s_fprintf(stderr, " - SYNTH ERROR: Bank file %s contains invalid signature\n", m_bankPath);
         flushout(stderr);
         return false;
     }
@@ -1113,7 +1113,7 @@ int DoomOPL::InitSynth()
     opl_new = 0;
     opl_voices = OPL_NUM_VOICES;
     opl_drv_ver = opl_doom_1_9;
-    std::fprintf(stdout, " - DEBUG: DOOM1 1.9 mode is default\n");
+    s_fprintf(stdout, " - DEBUG: DOOM1 1.9 mode is default\n");
 
     env = m_setup_string ? m_setup_string : getenv("DMXOPTION");
     if (env)
@@ -1122,19 +1122,19 @@ int DoomOPL::InitSynth()
         {
             opl_new = 1;
             opl_voices = OPL_NUM_VOICES * 2;
-            std::fprintf(stdout, " - DEBUG: Enabling OPL3 mode\n");
+            s_fprintf(stdout, " - DEBUG: Enabling OPL3 mode\n");
         }
 
         if (strstr(env, "-doom1"))
         {
             opl_drv_ver = opl_doom1_1_666;
-            std::fprintf(stdout, " - DEBUG: Setting DOOM1 1.666 mode (previous overriden)\n");
+            s_fprintf(stdout, " - DEBUG: Setting DOOM1 1.666 mode (previous overriden)\n");
         }
 
         if (strstr(env, "-doom2"))
         {
             opl_drv_ver = opl_doom2_1_666;
-            std::fprintf(stdout, " - DEBUG: Setting DOOM2 1.666 mode (previous overriden)\n");
+            s_fprintf(stdout, " - DEBUG: Setting DOOM2 1.666 mode (previous overriden)\n");
         }
     }
 

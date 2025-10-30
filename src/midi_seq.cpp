@@ -160,7 +160,7 @@ void MIDI_Seq::debugMessageHook(void */*userdata*/, const char *fmt, ...)
 
     if(rc > 0)
     {
-        std::fprintf(stdout, " - Debug: %s\n", buffer);
+        s_fprintf(stdout, " - Debug: %s\n", buffer);
         flushout(stdout);
     }
 }
