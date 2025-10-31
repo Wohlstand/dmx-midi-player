@@ -78,6 +78,7 @@ if(USE_VENDORED_SDL2)
 endif()
 
 if(MSDOS_BUILD)
+    set_target_properties(dmxplay PROPERTIES SUFFIX ".exe") # Don't make an .exe-less copy!
     target_compile_definitions(dmxplay PRIVATE -DHW_DOS_BUILD)
 else()
     target_include_directories(dmxplay PRIVATE ${SDL2_INCLUDE_DIRS})
