@@ -108,16 +108,15 @@ void opl3class::fm_writereg(unsigned short reg, unsigned char data) {
 #ifndef HW_DOS_BUILD
     chip->writeReg(reg, data);
 #else
-    unsigned o = reg >> 8;
-    unsigned port = s_OPLBase + o * 2;
+    unsigned c, o = reg >> 8, port = s_OPLBase + o * 2;
     outportb(port, reg);
 
-    for(unsigned c = 0; c < 6; ++c)
+    for(c = 0; c < 6; ++c)
         inportb(port);
 
     outportb(port + 1, data);
 
-    for(unsigned c = 0; c < 35; ++c)
+    for(c = 0; c < 24; ++c)
         inportb(port);
 #endif
 }
