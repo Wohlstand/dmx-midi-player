@@ -426,6 +426,56 @@ static void runDOSLoop(MIDI_Seq *myDevice)
 
     myDevice->panic(); //Shut up all sustaining notes
 }
+
+static void oplSend(uint16_t port, uint16_t reg, uint8_t val)
+{
+    int delay;
+
+    outportb(port, reg);
+
+    for(delay = 6; delay > 0; --delay)
+        inportb(port);
+
+    outportb(port + 1, val);
+
+    for(delay = 27; delay > 0; --delay)
+        inportb(port);
+}
+
+static bool oplChipInit(uint16_t address)
+{
+    int status1 = 0;
+    int status2 = 0;
+    int i;
+    bool ret;
+
+    if(address == 0)
+        address = 0x388; // Default!
+
+    oplSend(address, 4, 0x60);
+    oplSend(address, 4, 0x80);
+
+    status1 = inportb(address);
+
+    oplSend(address, 2, 0xFF);
+    oplSend(address, 4, 0x21);
+
+    for(i = 100; i > 0; --i)
+        inportb(address);
+
+    status2 = inp(address);
+
+    oplSend(address, 4, 0x60);
+    oplSend(address, 4, 0x80);
+
+    ret = ((status1 & 0xE0) == 0x00) && ((status2 & 0xE0) == 0xC0);
+
+    if(!ret)
+        s_fprintf(stdout, " - OPL detect status: addr=0x%02X 0x%02X, 0x%02X\n", address, status1, status2);
+
+    return ret;
+}
+
 #else
 
 static int runWaveOutLoopLoop(MIDI_Seq &player, const char *musPath, const char *wavPath, const struct SDL_AudioSpec &spec)
@@ -640,7 +690,7 @@ struct Args
                 if(a.end())
                     return printArgFail(cur);
 
-                hw_addr = std::strtoul(argv[3], NULL, 0);
+                hw_addr = std::strtoul(a.arg(), NULL, 0);
                 if(hw_addr == 0)
                 {
                     s_fprintf(stderr, "The option --addr requires a non-zero integer argument!\n");
@@ -869,6 +919,13 @@ int main(int argc, char **argv)
 
     player.setGain(args.gain);
 #else
+    if(!oplChipInit(args.hw_addr))
+    {
+        s_fprintf(stderr, "\nERROR: Failed to detect OPL2/OPL3 chip!\n");
+        flushout(stderr);
+        return 1;
+    }
+
     player.set_hw_addr(args.hw_addr);
     s_fprintf(stdout, " - [DOS] Running clock with %u hz\n", args.clock_freq);
 #endif
@@ -879,7 +936,7 @@ int main(int argc, char **argv)
     if(!player.initSynth(args.emu_type, obtained.freq))
 #endif
     {
-        s_fprintf(stdout, "Failed to initialize the synth!\n");
+        s_fprintf(stdout, "\nERROR: Failed to initialize the synth!\n");
         flushout(stdout);
         return 2;
     }
@@ -895,7 +952,7 @@ int main(int argc, char **argv)
 
     if(!player.openMusic(args.song))
     {
-        s_fprintf(stdout, "Can't open music %s\n", args.song);
+        s_fprintf(stdout, "\nERROR: Can't open music %s\n", args.song);
         flushout(stdout);
         return 1;
     }
