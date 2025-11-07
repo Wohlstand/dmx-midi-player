@@ -202,6 +202,11 @@ bool MIDI_Seq::initStream(int out_fmt, int out_rate, int out_channels)
 }
 #endif
 
+void MIDI_Seq::setIgnoreEnv(bool ignore)
+{
+    m_synth->ignore_env(ignore);
+}
+
 void MIDI_Seq::setSetupString(const char *setup)
 {
     m_synth->setup_string(setup);

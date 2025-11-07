@@ -35,6 +35,7 @@ public:
 
     virtual const char *getEmuName() = 0;
 
+    virtual void ignore_env(bool ignore) = 0;
     virtual void setup_string(const char *setup) = 0;
     virtual bool load_bank_file(const char *bank_path) = 0;
 

@@ -339,6 +339,7 @@ private:
     opl_channel_data_t channels[MIDI_CHANNELS_PER_TRACK];
     opl_driver_ver_t opl_drv_ver = opl_doom_1_9;
     const char *m_setup_string = nullptr;
+    bool m_ignore_env = false;
 
     // GENMIDI lump instrument data:
     char m_bankPath[2048] = "";
@@ -394,6 +395,7 @@ public:
 
     const char *getEmuName();
 
+    void ignore_env(bool ignore);
     void setup_string(const char *setup);
     bool load_bank_file(const char *bank_path);
 

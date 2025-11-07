@@ -11,7 +11,8 @@ dmxplay [-bank <bank>] [-setup "<string>"] [-loop] <filename>
 - `<filename>` - Path to music file to play. Required.
 - `-bank <bank file name>` - Path to custom OP2 bank file.
 - `-loop` - Enable looping of the opened music file.
-- `-setup "<string>"` - Set a quoted space-separated setup string for synth in same as DMXOPTION environment variable.
+- `-setup "<string>"` - Set a quoted space-separated setup string for synth in same as `DMXOPTION` environment variable.
+- `-no-env` - Don't handle content of `DMXOPTION` environment variable.
 - `-opl3` - enable OPL3 mode (by default the OPL2 mode).
 - `-doom1` - Enable the Doom1 v1.666 mode (by default the v1.9 mode).
 - `-doom2` - Enable the Doom2 v1.666 mode (by default the v1.9 mode).

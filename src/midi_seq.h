@@ -62,6 +62,7 @@ public:
     void set_hw_addr(unsigned short addr);
 #endif
 
+    void setIgnoreEnv(bool ignore);
     void setSetupString(const char *setup);
     bool openBank(const char *bank);
     bool openMusic(const char *music);

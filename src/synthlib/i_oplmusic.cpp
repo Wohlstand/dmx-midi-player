@@ -1087,6 +1087,11 @@ const char *DoomOPL::getEmuName()
     return opl->getEmuName();
 }
 
+void DoomOPL::ignore_env(bool ignore)
+{
+    m_ignore_env = ignore;
+}
+
 void DoomOPL::setup_string(const char *setup)
 {
     m_setup_string = setup;
@@ -1115,7 +1120,7 @@ int DoomOPL::InitSynth()
     opl_drv_ver = opl_doom_1_9;
     s_fprintf(stdout, " - DEBUG: DOOM1 1.9 mode is default\n");
 
-    env = m_setup_string ? m_setup_string : getenv("DMXOPTION");
+    env = m_setup_string ? m_setup_string : (m_ignore_env ? NULL : getenv("DMXOPTION"));
     if (env)
     {
         if (strstr(env, "-opl3"))

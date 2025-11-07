@@ -527,6 +527,7 @@ struct Args
 #endif
 
     bool loop = false;
+    bool noEnv = false;
 
     size_t              soloTrack = ~(size_t)0;
     int                 songNumLoad = -1;
@@ -644,6 +645,10 @@ struct Args
 #else
                 loop = !wave;
 #endif
+            }
+            else if(!std::strcmp(cur, "-no-env"))
+            {
+                noEnv = true;
             }
             else if(!std::strcmp(cur, "-setup"))
             {
@@ -834,6 +839,7 @@ int main(int argc, char **argv)
             "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"
             "  -solo <TRACK>    - Set MIDI track number to play solo.\n"
             "  -only <T1,..Tn>  - Set a comma-separated list of MIDI tracks to play solo.\n"
+            "  -no-env          - Don't handle content of DMXOPTION environment variable.\n"
             "  -opl3            - Enable OPL3 mode (by default the OPL2 mode).\n"
             "  -doom1           - Enable the Doom1 v1.666 mode (by default the v1.9 mode).\n"
             "  -doom2           - Enable the Doom2 v1.666 mode (by default the v1.9 mode).\n"
@@ -866,6 +872,7 @@ int main(int argc, char **argv)
     }
 
     player.openBank(args.bank);
+    player.setIgnoreEnv(args.noEnv);
     player.setSetupString(args.setup);
     player.setLoop(args.loop);
 
