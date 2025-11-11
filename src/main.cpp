@@ -19,11 +19,14 @@
 #include <cstring>
 #include <cstdio>
 #include <vector>
+#ifdef _WIN32
+#   include <windows.h> // for Windows-specific setCursorVisibility implementation
+#endif
 
 #define VERSION "1.0.0"
 
 #ifndef HW_DOS_BUILD
-#   include "utf8main/utf8main.h"
+#   include "utf8main/utf8main.h" // IWYU pragma: keep
 #   include "wav/wave_writer.h"
 #   define SDL_MAIN_HANDLED
 #   include <SDL2/SDL.h>
@@ -150,6 +153,22 @@ static void *init_wave_writer(const SDL_AudioSpec &spec, const char *waveOutFile
                         waveOutFile);
 
     return ctx;
+}
+
+static void setCursorVisibility(bool visible)
+{
+#ifdef _WIN32
+    HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO info;
+    info.dwSize = 100;
+    info.bVisible = visible ? TRUE : FALSE;
+    SetConsoleCursorInfo(consoleHandle, &info);
+#else
+    if(visible)
+        printf("\e[?25h");
+    else
+        printf("\e[?25l");
+#endif
 }
 #endif
 
@@ -496,6 +515,8 @@ static int runWaveOutLoopLoop(MIDI_Seq &player, const char *musPath, const char 
         return 1;
     }
 
+    setCursorVisibility(false);
+
     while(is_playing)
     {
         got = player.playBuffer(buffer, buffer_size);
@@ -505,6 +526,8 @@ static int runWaveOutLoopLoop(MIDI_Seq &player, const char *musPath, const char 
         ctx_wave_write(wave, buffer, got);
         s_timeCounter.printProgress(player.tell());
     }
+
+    setCursorVisibility(true);
 
     ctx_wave_close(wave);
 
@@ -1034,10 +1057,17 @@ int main(int argc, char **argv)
     {
         ret = runWaveOutLoopLoop(player, args.song, args.waveFile, spec);
     }
-    else while(is_playing)
+    else
     {
-        s_timeCounter.printTime(player.tell());
-        SDL_Delay(1);
+        setCursorVisibility(false);
+
+        while(is_playing)
+        {
+            s_timeCounter.printTime(player.tell());
+            SDL_Delay(1);
+        }
+
+        setCursorVisibility(true);
     }
 
     /* shut everything down */
