@@ -54,13 +54,35 @@ add_executable(dmxplay
     # Sequencer
     src/midi_seq.h
     src/midi_seq.cpp
-    src/seq/cvt_xmi2mid.hpp
+    src/emu_list.h
+
     src/seq/file_reader.hpp
-    src/seq/fraction.hpp
     src/seq/midi_sequencer.h
     src/seq/midi_sequencer.hpp
     src/seq/midi_sequencer_impl.hpp
-    src/emu_list.h
+    src/seq/impl/common.hpp
+    src/seq/impl/cvt_xmi2mid.hpp
+    src/seq/impl/databank_impl.hpp
+    src/seq/impl/debug_songdump.hpp
+    src/seq/impl/durated_note_impl.hpp
+    src/seq/impl/err_string_impl.hpp
+    src/seq/impl/io_impl.hpp
+    src/seq/impl/load_music_impl.hpp
+    src/seq/impl/loop_impl.hpp
+    src/seq/impl/mididata_impl.hpp
+    src/seq/impl/miditrack_impl.hpp
+    src/seq/impl/platform_impl.hpp
+    src/seq/impl/process_impl.hpp
+    src/seq/impl/read_cmf_impl.hpp
+    src/seq/impl/read_gmf_impl.hpp
+    src/seq/impl/read_hmi_impl.hpp
+    src/seq/impl/read_imf_impl.hpp
+    src/seq/impl/read_klm_impl.hpp
+    src/seq/impl/read_mus_impl.hpp
+    src/seq/impl/read_rsxx_impl.hpp
+    src/seq/impl/read_smf_impl.hpp
+    src/seq/impl/read_xmi_impl.hpp
+    src/seq/impl/tempo_fraction.hpp
 )
 
 if(USE_STATIC_LIBC)
