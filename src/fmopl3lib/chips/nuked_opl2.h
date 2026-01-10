@@ -18,23 +18,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MAME_OPL2_H
-#define MAME_OPL2_H
+#ifndef NUKED_OPL2_H
+#define NUKED_OPL2_H
 
 #include "opl_chip_base.h"
 
-class MameOPL2 final : public OPLChipBaseT<MameOPL2>
+class NukedOPL2 final : public OPLChipBaseT<NukedOPL2>
 {
     void *m_chip;
-
 public:
-    MameOPL2();
-    ~MameOPL2() override;
+    NukedOPL2();
+    ~NukedOPL2() override;
 
     bool canRunAtPcmRate() const override { return false; }
     void setRate(uint32_t rate) override;
     void reset() override;
     void writeReg(uint16_t addr, uint8_t data) override;
+    void writePan(uint16_t addr, uint8_t data) override;
     void nativePreGenerate() override {}
     void nativePostGenerate() override {}
     void nativeGenerate(int16_t *frame) override;
@@ -43,4 +43,4 @@ public:
     bool hasFullPanning() override;
 };
 
-#endif // MAME_OPL2_H
+#endif // NUKED_OPL2_H
