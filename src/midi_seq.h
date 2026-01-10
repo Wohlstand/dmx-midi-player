@@ -1,5 +1,5 @@
 //
-// Copyright(C) 2025-2025 Vitaliy Novichkov
+// Copyright(C) 2025-2026 Vitaliy Novichkov
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
