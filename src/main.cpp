@@ -783,6 +783,8 @@ struct Args
                     emu_type = EMU_OPL2_LLE;
                 else if(!std::strcmp(a.arg(), "lle-opl3"))
                     emu_type = EMU_OPL3_LLE;
+                else if(!std::strcmp(a.arg(), "nuked-opl2"))
+                    emu_type = EMU_NUKED_OPL2;
                 else
                 {
                     s_fprintf(stderr, "ERROR: Invalid emulator name: %s\n", a.arg());
@@ -857,7 +859,7 @@ int main(int argc, char **argv)
             "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
             "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
             "                     nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
-            "                     mame-opl2, lle-opl2, lle-opl3\n"
+            "                     mame-opl2, lle-opl2, lle-opl3, nuked-opl2\n"
 #endif
             "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"
             "  -solo <TRACK>    - Set MIDI track number to play solo.\n"

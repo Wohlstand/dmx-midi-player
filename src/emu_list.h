@@ -25,7 +25,8 @@ enum ChipEmu
     EMU_YMFM_OPL2,
     EMU_MAME_OPL2,
     EMU_OPL2_LLE,
-    EMU_OPL3_LLE
+    EMU_OPL3_LLE,
+    EMU_NUKED_OPL2
 };
 
 #endif // EMU_LIST_H

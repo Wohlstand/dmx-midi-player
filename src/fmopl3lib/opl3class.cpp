@@ -17,6 +17,7 @@
 #ifndef HW_DOS_BUILD
 #include "../emu_list.h"
 #include "chips/dosbox_opl3.h"
+#include "chips/nuked_opl2.h"
 #include "chips/nuked_opl3.h"
 #include "chips/java_opl3.h"
 #include "chips/ymfm_opl3.h"
@@ -65,6 +66,9 @@ int opl3class::fm_init(int chip_emu, unsigned int rate) {
     switch(chip_emu)
     {
     default:
+    case EMU_NUKED_OPL2:
+        chip = new NukedOPL2;
+        break;
     case EMU_NUKED_OPL3:
         chip = new NukedOPL3;
         break;
