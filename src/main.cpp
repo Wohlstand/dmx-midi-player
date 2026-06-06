@@ -35,7 +35,8 @@
 #   include <conio.h>   // getch/kbhit
 #   include <dos.h>     // delay
 #   include <sys/nearptr.h>
-#   include "dos_tman.h"
+#   include "dos/dos_tman.h"
+#   include "dos/dpmi_locks.h"
 typedef uint32_t Uint32;
 typedef uint8_t Uint8;
 #endif // HW_DOS_BUILD
@@ -51,6 +52,10 @@ typedef uint8_t Uint8;
 #ifndef HW_DOS_BUILD
 enum { nch = 2 };
 enum { buffer_size = 1024 };
+#endif
+
+#ifdef HW_DOS_BUILD
+void main_dpmi_lock_begin() {}
 #endif
 
 /* variable declarations */
@@ -338,16 +343,16 @@ static double s_extra_delay = 0.0;
 static DosTaskman *s_taskman = NULL;
 static bool s_pause = false;
 
-static void s_midiLoop(DosTaskman::DosTask *task)
+static void s_midiLoop(DosTask *task)
 {
     if(!is_playing || s_pause)
         return;
 
-    MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(task->getData());
-    const double mindelay = 1.0 / task->getFreq();
+    MIDI_Seq *player = reinterpret_cast<MIDI_Seq *>(DosTaskman::task_getData(task));
+    const double mindelay = 1.0 / DosTaskman::task_getFreq(task);
     double tickDelay;
 
-    if(task->getCount() >= task->getRate())
+    if(DosTaskman::task_getCount(task) >= DosTaskman::task_getRate(task))
     {
         s_extra_delay += mindelay;
         return; // Skip this iteration
@@ -445,6 +450,10 @@ static void runDOSLoop(MIDI_Seq *myDevice)
 
     myDevice->panic(); //Shut up all sustaining notes
 }
+
+#ifdef HW_DOS_BUILD
+void main_dpmi_lock_end() {}
+#endif
 
 static void oplSend(uint16_t port, uint16_t reg, uint8_t val)
 {
@@ -767,6 +776,8 @@ struct Args
 
                 if(!std::strcmp(a.arg(), "nuked"))
                     emu_type = EMU_NUKED_OPL3;
+                else if(!std::strcmp(a.arg(), "nuked-fast"))
+                    emu_type = EMU_NUKED_OPL3_FAST;
                 else if(!std::strcmp(a.arg(), "dosbox"))
                     emu_type = EMU_DOSBOX_OPL3;
                 else if(!std::strcmp(a.arg(), "java"))
@@ -785,6 +796,8 @@ struct Args
                     emu_type = EMU_OPL3_LLE;
                 else if(!std::strcmp(a.arg(), "nuked-opl2"))
                     emu_type = EMU_NUKED_OPL2;
+                else if(!std::strcmp(a.arg(), "nuked-cqm"))
+                    emu_type = EMU_NUKED_CQM;
                 else
                 {
                     s_fprintf(stderr, "ERROR: Invalid emulator name: %s\n", a.arg());
@@ -858,8 +871,8 @@ int main(int argc, char **argv)
             "  -wave <path.wav> - [Non-DOS ONLY] Record output into WAV file of spcified path.\n"
             "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
             "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
-            "                     nuked, dosbox, java, opal, ymfm-opl2, ymfm-opl3,\n"
-            "                     mame-opl2, lle-opl2, lle-opl3, nuked-opl2\n"
+            "                     nuked, nuked-fast, nuked-cqm, nuked-opl2, dosbox, java, opal,\n"
+            "                     ymfm-opl2, ymfm-opl3, mame-opl2, lle-opl2, lle-opl3\n"
 #endif
             "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"
             "  -solo <TRACK>    - Set MIDI track number to play solo.\n"
@@ -1077,12 +1090,20 @@ int main(int argc, char **argv)
         SDL_CloseAudio();
     SDL_Quit();
 #else
-    DosTaskman::DosTask *midiTask = taskMan.addTask(s_midiLoop, args.clock_freq, 1, &player);
+    dpmi_add_obj_to_lock(taskMan);
+    dpmi_add_obj_to_lock(is_playing);
+    dpmi_add_obj_to_lock(s_timeCounter);
+    dpmi_add_obj_to_lock(s_extra_delay);
+    dpmi_add_obj_to_lock(s_pause);
+
+    dpmi_lock_classes();
+    DosTask *midiTask = taskMan.addTask(s_midiLoop, args.clock_freq, 1, &player);
     s_taskman = &taskMan;
     taskMan.dispatch();
     runDOSLoop(&player);
     taskMan.terminate(midiTask);
     // s_timeCounter.restoreDosTimer();
+    dpmi_unlock_classes();
 #endif
 
     s_fprintf(stdout, "\n");

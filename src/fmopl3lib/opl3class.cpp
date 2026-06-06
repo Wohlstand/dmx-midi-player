@@ -19,6 +19,8 @@
 #include "chips/dosbox_opl3.h"
 #include "chips/nuked_opl2.h"
 #include "chips/nuked_opl3.h"
+#include "chips/nuked_opl3_fast.h"
+#include "chips/nuked_cqm.h"
 #include "chips/java_opl3.h"
 #include "chips/ymfm_opl3.h"
 #include "chips/ymfm_opl2.h"
@@ -71,6 +73,12 @@ int opl3class::fm_init(int chip_emu, unsigned int rate) {
         break;
     case EMU_NUKED_OPL3:
         chip = new NukedOPL3;
+        break;
+    case EMU_NUKED_OPL3_FAST:
+        chip = new NukedOPL3Fast;
+        break;
+    case EMU_NUKED_CQM:
+        chip = new NukedCQM;
         break;
     case EMU_DOSBOX_OPL3:
         chip = new DosBoxOPL3;

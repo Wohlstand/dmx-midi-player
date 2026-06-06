@@ -25,6 +25,11 @@
 #   include <windows.h>
 #endif
 
+#if defined(__DJGPP__)
+void DoomOPL_lockCodeBegin()
+{}
+#endif
+
 static FILE* i_fopen(const char*filename, const char*mode) {
 #ifdef _WIN32
     int new_Len1 = 0;
@@ -1190,7 +1195,13 @@ void DoomOPL::midi_generate(int *buffer, unsigned int length) {
 }
 #endif
 
-midisynth *getsynth() {
+midisynth *getsynth()
+{
     DoomOPL *synth = new DoomOPL();
     return synth;
 }
+
+#if defined(__DJGPP__)
+void DoomOPL_lockCodeEnd()
+{}
+#endif

@@ -13,6 +13,8 @@ if(NOT MSDOS_BUILD)
     option(USE_STATIC_LIBC "Build with all runtime linked statically" OFF)
     set(CMAKE_CXX_STANDARD 14)
     set(COMPILER_SUPPORTS_CXX14 ON)
+    set(OPL_CHIPSET_ENABLE_LLE_OPL2 ON)
+    set(OPL_CHIPSET_ENABLE_LLE_OPL3 ON)
     include(src/fmopl3lib/chips/chipset.cmake)
 
     set(AUDIO_OUT_SRC
@@ -29,8 +31,12 @@ if(NOT MSDOS_BUILD)
     endif()
 else()
     set(DOS_SOURCES
-        src/dos_tman.h
-        src/dos_tman.cpp
+        src/dos/dos_tman.h
+        src/dos/dos_tman.cpp
+        src/dos/adlmidi_dos.h
+        src/dos/adlmidi_dos.c
+        src/dos/dpmi_locks.h
+        src/dos/dpmi_locks.cpp
     )
 endif()
 

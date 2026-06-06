@@ -329,7 +329,17 @@ const unsigned int channel_map_table[MIDI_CHANNELS_PER_TRACK] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 9, 10, 11, 12, 13, 14
 };
 
-class DoomOPL : public midisynth {
+#if defined(__DJGPP__)
+extern void DoomOPL_lockCodeBegin();
+extern void DoomOPL_lockCodeEnd();
+#endif
+
+class DoomOPL : public midisynth
+{
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_begin() {}
+#endif
 private:
     friend midisynth* getsynth();
 
@@ -412,5 +422,10 @@ public:
 
 #ifndef HW_DOS_BUILD
     void midi_generate(int *buffer, unsigned int length);
+#endif
+
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_end() {}
 #endif
 };

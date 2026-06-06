@@ -12,7 +12,12 @@
 // GNU General Public License for more details.
 //
 
-class fm_chip {
+class fm_chip
+{
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_begin() {}
+#endif
 public:
     fm_chip() = default;
     virtual ~fm_chip() = default;
@@ -24,9 +29,19 @@ public:
 #ifndef HW_DOS_BUILD
     virtual void fm_generate(int *buffer, unsigned int length) = 0;
 #endif
+
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_end() {}
+#endif
 };
 
-class midisynth {
+class midisynth
+{
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_begin() {}
+#endif
 public:
     midisynth() = default;
     virtual ~midisynth() = default;
@@ -53,6 +68,10 @@ public:
 
 #ifndef HW_DOS_BUILD
     virtual void midi_generate(int *buffer, unsigned int length) = 0;
+#endif
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_end() {}
 #endif
 };
 

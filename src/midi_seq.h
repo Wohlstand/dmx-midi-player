@@ -31,6 +31,11 @@ typedef struct _SDL_AudioStream SDL_AudioStream;
 
 class MIDI_Seq
 {
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_begin() {}
+private:
+#endif
     midisynth *m_synth = nullptr;
     BW_MidiRtInterface *m_interface = nullptr;
     MidiSequencer *m_sequencer = nullptr;
@@ -104,6 +109,16 @@ public:
 #ifndef HW_DOS_BUILD
     size_t playBuffer(unsigned char *out, size_t len);
 #endif
+
+#if defined(__DJGPP__)
+public:
+    void dpmi_lock_end() {}
+#endif
 };
+
+#ifdef HW_DOS_BUILD
+extern void MIDI_Seq_dpmi_lock_begin();
+extern void MIDI_Set_dpmi_lock_end();
+#endif
 
 #endif // MIDI_SEQ_H

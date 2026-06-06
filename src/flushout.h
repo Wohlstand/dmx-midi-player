@@ -12,7 +12,7 @@
 #   elif defined(__DJGPP__)
 // Use printf and flush with interrupt triggering suspension to avoid execution of interrupt just in a middle of the fprintf and fflush execution
 #   include <cstdarg>
-#   include "dos_tman.h"
+#   include "dos/dos_tman.h"
 
 static int s_fprintf(FILE *stream, const char *format, ...)
 {

@@ -14,6 +14,8 @@
 
 #ifndef HW_DOS_BUILD
 #   include <SDL2/SDL_audio.h>
+#else
+#   include "dos/adlmidi_dos.h"
 #endif
 
 #include <cstdarg>
@@ -29,6 +31,10 @@
 #include "interface.h"
 
 #define OPL_CHIP_RATE  50000 // 49716
+
+#ifdef HW_DOS_BUILD
+void MIDI_Seq_dpmi_lock_begin() {}
+#endif
 
 /****************************************************
  *           Real-Time MIDI calls proxies           *
@@ -111,6 +117,10 @@ static void playSynth(void *userdata, uint8_t *stream, size_t length)
 }
 #endif
 
+#ifdef HW_DOS_BUILD
+void MIDI_Set_dpmi_lock_end() {}
+#endif
+
 void MIDI_Seq::initSeq()
 {
     std::memset(m_interface, 0, sizeof(BW_MidiRtInterface));
@@ -169,13 +179,27 @@ MIDI_Seq::MIDI_Seq() :
     m_synth(getsynth()),
     m_interface(new BW_MidiRtInterface),
     m_sequencer(new BW_MidiSequencer)
-{}
+{
+#ifdef HW_DOS_BUILD
+    adl_dpmi_lock(*this);
+    adl_dpmi_lock(*m_interface);
+    adl_dpmi_lock(*m_sequencer);
+    adl_dpmi_lock(*m_synth);
+#endif
+}
 
 MIDI_Seq::~MIDI_Seq()
 {
 #ifndef HW_DOS_BUILD
     if(m_stream)
         SDL_FreeAudioStream(m_stream);
+#endif
+
+#ifdef HW_DOS_BUILD
+    adl_dpmi_unlock(*m_synth);
+    adl_dpmi_unlock(*m_interface);
+    adl_dpmi_unlock(*m_sequencer);
+    adl_dpmi_unlock(*this);
 #endif
 
     delete m_sequencer;

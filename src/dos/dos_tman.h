@@ -28,12 +28,14 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include <list>
 
 #define DOS_TASK_CLOCK_BASE 1192030L
 
+struct DosTask;
+
 class DosTaskman
 {
+    void dpmi_lock_begin() {}
     bool m_running;
     static DosTaskman *self;
     volatile long m_timerRate;
@@ -50,37 +52,13 @@ class DosTaskman
     void resetClockRate();
 
 public:
-
-    struct DosTask
-    {
-        DosTask() :
-            callback(NULL),
-            data(NULL),
-            freq(0),
-            rate_real(0),
-            count(0),
-            priority(0),
-            active(false)
-        {}
-
-        friend class DosTaskman;
-        inline void *getData() const { return data; }
-        inline long getFreq() const { return freq; }
-        inline long getCount() const { return count; }
-        inline long getRate() const { return rate_real; }
-
-    private:
-        void (*callback)(struct DosTask*);
-        void *data;
-        long freq;
-        long rate_real;
-        volatile long count;
-        int priority;
-        bool active;
-    };
-
     DosTaskman();
     ~DosTaskman();
+
+    static void* task_getData(DosTask *task);
+    static long task_getFreq(DosTask *task);
+    static long task_getCount(DosTask *task);
+    static long task_getRate(DosTask *task);
 
     static bool isInsideInterrupt();
     static int reserve_fprintf(FILE *stream, const char *format, va_list args);
@@ -136,7 +114,18 @@ private:
     void clearTasks();
     DosTask *addTask(DosTask &task);
 
-    std::list<DosTask> m_tasks;
+    DosTask *m_tasks_begin;
+    DosTask *m_tasks_end;
+    size_t   m_tasks_size;
+
+    DosTask *task_erase(DosTask *it);
+    DosTask *task_insert(DosTask *pos, DosTask *o);
+    void task_clean();
+
+    DosTask *task_make();
+    DosTask *task_make_at(DosTask *pos);
+
+    void dpmi_lock_end() {}
 };
 
 #endif // DOS_TMAN_H

@@ -18,7 +18,8 @@
 class OPLChipBase;
 #endif
 
-class opl3class : public fm_chip {
+class opl3class : public fm_chip
+{
 private:
 #ifndef HW_DOS_BUILD
     OPLChipBase *chip = nullptr;
