@@ -564,6 +564,7 @@ struct Args
 #endif
 
     bool loop = false;
+    bool emidi = false;
     bool noEnv = false;
 
     size_t              soloTrack = ~(size_t)0;
@@ -682,6 +683,10 @@ struct Args
 #else
                 loop = !wave;
 #endif
+            }
+            else if(!std::strcmp(cur, "-emidi"))
+            {
+                emidi = true;
             }
             else if(!std::strcmp(cur, "-no-env"))
             {
@@ -867,6 +872,8 @@ int main(int argc, char **argv)
             "Supported options:\n"
             "  -bank <file.op2> - Path to custom OP2 bank file.\n"
             "  -loop            - Enable looping of the opened music file.\n"
+            "  -emidi           - Enables handling of MIDI files as Apogee Sound \n"
+            "                     System EMIDI\n"
 #ifdef HW_DOS_BUILD
             "  -addr <0xVAL>    - [DOS ONLY] Set the hardware OPL2/OPL3 address.\n"
             "                     Default is 0x388.\n"
@@ -918,6 +925,7 @@ int main(int argc, char **argv)
     player.setIgnoreEnv(args.noEnv);
     player.setSetupString(args.setup);
     player.setLoop(args.loop);
+    player.setModeEMIDI(args.emidi);
 
     s_fprintf(stdout, " - Use bank [%s]\n", args.bank);
     flushout(stdout);

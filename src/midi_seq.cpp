@@ -275,6 +275,11 @@ void MIDI_Seq::setLoop(bool enable)
     m_sequencer->setLoopEnabled(enable);
 }
 
+void MIDI_Seq::setModeEMIDI(bool enable)
+{
+    m_sequencer->setModeEMIDI(enable);
+}
+
 void MIDI_Seq::setSoloTrack(size_t solo)
 {
     m_sequencer->setSoloTrack(solo);

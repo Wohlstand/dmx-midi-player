@@ -81,6 +81,7 @@ public:
     const char *getEmuName();
 
     void setLoop(bool enable);
+    void setModeEMIDI(bool enable);
 
     void setSoloTrack(size_t solo);
     size_t getTracksCount();
