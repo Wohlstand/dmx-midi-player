@@ -790,6 +790,8 @@ struct Args
                     emu_type = EMU_NUKED_OPL3_FAST;
                 else if(!std::strcmp(a.arg(), "dosbox"))
                     emu_type = EMU_DOSBOX_OPL3;
+                else if(!std::strcmp(a.arg(), "dosbox-opl2"))
+                    emu_type = EMU_DOSBOX_OPL2;
                 else if(!std::strcmp(a.arg(), "java"))
                     emu_type = EMU_JAVA_OPL3;
                 else if(!std::strcmp(a.arg(), "opal"))
@@ -883,8 +885,9 @@ int main(int argc, char **argv)
             "  -wave <path.wav> - [Non-DOS ONLY] Record output into WAV file of spcified path.\n"
             "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
             "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
-            "                     nuked, nuked-fast, nuked-cqm, nuked-opl2, dosbox, java, opal,\n"
-            "                     ymfm-opl2, ymfm-opl3, mame-opl2, lle-opl2, lle-opl3\n"
+            "                     nuked, nuked-fast, nuked-cqm, nuked-opl2, dosbox, dosbox-opl2,"
+            "                     java, opal, ymfm-opl2, ymfm-opl3, mame-opl2, lle-opl2, "
+            "                     lle-opl3\n"
 #endif
             "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"
             "  -solo <TRACK>    - Set MIDI track number to play solo.\n"

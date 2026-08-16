@@ -19,6 +19,7 @@ enum ChipEmu
 {
     EMU_NUKED_OPL3 = 0,
     EMU_DOSBOX_OPL3,
+    EMU_DOSBOX_OPL2,
     EMU_JAVA_OPL3,
     EMU_OPAL_OPL3,
     EMU_YMFM_OPL3,
