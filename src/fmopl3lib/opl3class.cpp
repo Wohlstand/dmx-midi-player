@@ -22,6 +22,7 @@
 #include "chips/nuked_opl3.h"
 #include "chips/nuked_opl3_fast.h"
 #include "chips/nuked_cqm.h"
+#include "chips/esfmu_opl3.h"
 #include "chips/java_opl3.h"
 #include "chips/ymfm_opl3.h"
 #include "chips/ymfm_opl2.h"
@@ -101,6 +102,9 @@ int opl3class::fm_init(int chip_emu, unsigned int rate) {
         break;
     case EMU_MAME_OPL2:
         chip = new MameOPL2;
+        break;
+    case EMU_ESFMU:
+        chip = new ESFMuOPL3;
         break;
     case EMU_OPL2_LLE:
         chip = new Ym3812LLEOPL2;

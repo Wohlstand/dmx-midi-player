@@ -25,6 +25,7 @@ enum ChipEmu
     EMU_YMFM_OPL3,
     EMU_YMFM_OPL2,
     EMU_MAME_OPL2,
+    EMU_ESFMU,
     EMU_OPL2_LLE,
     EMU_OPL3_LLE,
     EMU_NUKED_OPL2,

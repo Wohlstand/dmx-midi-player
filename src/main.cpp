@@ -802,6 +802,8 @@ struct Args
                     emu_type = EMU_YMFM_OPL3;
                 else if(!std::strcmp(a.arg(), "mame-opl2"))
                     emu_type = EMU_MAME_OPL2;
+                else if(!std::strcmp(a.arg(), "esfmu"))
+                    emu_type = EMU_ESFMU;
                 else if(!std::strcmp(a.arg(), "lle-opl2"))
                     emu_type = EMU_OPL2_LLE;
                 else if(!std::strcmp(a.arg(), "lle-opl3"))
@@ -886,7 +888,7 @@ int main(int argc, char **argv)
             "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
             "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
             "                     nuked, nuked-fast, nuked-cqm, nuked-opl2, dosbox, dosbox-opl2,"
-            "                     java, opal, ymfm-opl2, ymfm-opl3, mame-opl2, lle-opl2, "
+            "                     java, opal, ymfm-opl2, ymfm-opl3, mame-opl2, esfmu, lle-opl2, "
             "                     lle-opl3\n"
 #endif
             "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"
