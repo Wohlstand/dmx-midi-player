@@ -887,8 +887,8 @@ int main(int argc, char **argv)
             "  -wave <path.wav> - [Non-DOS ONLY] Record output into WAV file of spcified path.\n"
             "  -towave          - [Non-DOS ONLY] Record output into WAV file in a place.\n"
             "  -emu <name>      - [Non-DOS ONLY] Select playback chip emulator:\n"
-            "                     nuked, nuked-fast, nuked-cqm, nuked-opl2, dosbox, dosbox-opl2,"
-            "                     java, opal, ymfm-opl2, ymfm-opl3, mame-opl2, esfmu, lle-opl2, "
+            "                     nuked, nuked-fast, nuked-cqm, nuked-opl2, dosbox, dosbox-opl2,\n"
+            "                     java, opal, ymfm-opl2, ymfm-opl3, mame-opl2, esfmu, lle-opl2,\n"
             "                     lle-opl3\n"
 #endif
             "  -song <NUM>      - Select song to play from 0 to N-1 (XMI only).\n"

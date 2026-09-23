@@ -19,5 +19,5 @@ dmxplay [-bank <bank>] [-setup "<string>"] [-loop] <filename>
 - `-gain` - \[Non-DOS ONLY\] Set the gaining factor (default 2.0).
 - `-wave <path.wav>` - \[Non-DOS ONLY\] Record output into WAV file of spcified path.
 - `-towave` - \[Non-DOS ONLY\] Record output into WAV file in a place. The name for the WAV file will be taken from the music file directly, and result WAV file will be saved at the same directory.
-- `-emu <name>` - \[Non-DOS ONLY\] Select playback chip emulator: `nuked`, `dosbox`, `java`, `opal`, `ymfm-opl2`, `ymfm-opl3`, `mame-opl2`, `lle-opl2`, `lle-opl3`
+- `-emu <name>` - \[Non-DOS ONLY\] Select playback chip emulator: `nuked`, `dosbox`, `java`, `opal`, `ymfm-opl2`, `ymfm-opl3`, `mame-opl2`, `nuked-opl2`, `nuked-cqm`, `esfmu`, `lle-opl2`, `lle-opl3`
 - `-addr <0xVAL>` - \[DOS ONLY\] Set the hardware OPL2/OPL3 address. Default is `0x388`.
